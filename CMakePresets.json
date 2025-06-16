@@ -22,6 +22,7 @@
             "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
+                "SE3_BUILD_TEST": "ON",
                 "Python_FIND_VIRTUALENV": "ONLY",
                 "Python_ROOT_DIR": "${sourceDir}/.venv"
             }

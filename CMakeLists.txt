@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.20)
 
-list(APPEND CMAKE_MESSAGE_CONTEXT robrazo)
-project(robrazo
+list(APPEND CMAKE_MESSAGE_CONTEXT se3)
+project(se3
     VERSION 0.1.0
     LANGUAGES C CXX
 )
-set(PREFIX ROBRAZO)
+set(PREFIX SE3)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -39,7 +39,7 @@ execute_process(
 find_package(nanobind CONFIG REQUIRED)
 
 # Build
-add_subdirectory(src/robrazo)
+add_subdirectory(src/se3)
 
 # Tests
 if(${PREFIX}_BUILD_TEST)
@@ -49,5 +49,5 @@ if(${PREFIX}_BUILD_TEST)
 endif()
 
 # Install
-install(TARGETS robrazo_ext LIBRARY DESTINATION robrazo)
+install(TARGETS se3_ext LIBRARY DESTINATION se3)
 

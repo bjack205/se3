@@ -1,9 +1,9 @@
-include_directories("${CMAKE_PROJECT_SOURCE_DIR}/src")
+include_directories("${PROJECT_SOURCE_DIR}/src")
 add_subdirectory(attitude)
 
 nanobind_add_module(
   # Name of the extension
-  robrazo_ext
+  se3_ext
 
   # Target the stable ABI for Python 3.12+, which reduces
   # the number of binary wheels that must be built. This
@@ -19,5 +19,5 @@ nanobind_add_module(
   NB_STATIC
 
   # Source code goes here
-  robrazo_pybind.cpp
+  se3_pybind.cpp
 )
