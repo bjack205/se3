@@ -6,7 +6,7 @@ constexpr bool kInitializeQuatToIdentity = QUAT_INIT_TO_IDENTITY;
 constexpr bool kInitializeQuatToIdentity = true;
 #endif
 
-#include "vector_concepts.hpp"
+#include "../linear_algebra/vector_concepts.hpp"
 
 namespace se3 {
 
@@ -16,10 +16,10 @@ template <std::floating_point T> struct Quaternion {
   Quaternion() = default;
   Quaternion(T q0, T q1, T q2, T q3) : w{q0}, x{q1}, y{q2}, z{q3} {}
 
-  explicit Quaternion(const Vec4 auto &vec4)
+  explicit Quaternion(const AbstractVector4 auto &vec4)
       : Quaternion(vec4[0], vec4[1], vec4[2], vec4[3]) {}
 
-  static Quaternion Pure(const Vec3 auto &vec3) {
+  static Quaternion Pure(const AbstractVector3 auto &vec3) {
     return Quaternion(0, vec3[0], vec3[1], vec3[2]);
   }
 

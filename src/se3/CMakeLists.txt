@@ -1,4 +1,5 @@
 include_directories("${PROJECT_SOURCE_DIR}/src")
+add_subdirectory(linear_algebra)
 add_subdirectory(attitude)
 
 nanobind_add_module(

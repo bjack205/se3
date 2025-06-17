@@ -11,7 +11,7 @@
 
 namespace se3 {
 
-template <Vec3 V, std::floating_point T = std::ranges::range_value_t<V>>
+template <AbstractVector3 V, std::floating_point T = std::ranges::range_value_t<V>>
 V operator*(const Quaternion<T> &q, const V &v) {
   // v_out = q x q(v) x q_c
   // v_out = R(q)^T L(q) H v
@@ -57,7 +57,7 @@ Quaternion<T> operator*(const Quaternion<T> &q0, const Quaternion<T> &q1) {
   return {w, x, y, z};
 }
 
-template <Vec3 V, std::floating_point T = std::ranges::range_value_t<V>>
+template <AbstractVector3 V, std::floating_point T = std::ranges::range_value_t<V>>
 Quaternion<T> pure_quat_expm(const V &v) {
   constexpr auto kSmallAngleTolerance = 1e-6;
   const T theta2 = normSquared(v);
