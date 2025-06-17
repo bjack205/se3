@@ -8,6 +8,7 @@
 #include <concepts>
 #include <ranges>
 
+#include "se3/linear_algebra/simd/vectors_simd.hpp"
 #include "se3/linear_algebra/vector_concepts.hpp"
 #include "se3/linear_algebra/vector_ops.hpp"
 #include "se3/linear_algebra/vectors.hpp"
@@ -50,7 +51,7 @@ TEST(VectorTests, Vector3) {
   EXPECT_EQ(a_ref[1], 2.0);
   EXPECT_EQ(a_ref[2], 3.0);
 
-  for (auto &el : a) {
+  for (auto& el : a) {
     el = 5.0;
   }
   EXPECT_DOUBLE_EQ(sum(a), 15.0);
@@ -105,5 +106,20 @@ TEST(VectorTests, Vector3_LinearAlgebra) {
   EXPECT_EQ(angleBetween(e_y, e_x), std::numbers::pi / 2.0);
 }
 
+TEST(VectorTests, Vector3_SIMD) {
+  simd::Vector3<double> a(1.0, 2.0, 3.0);
+  EXPECT_EQ(a[0], 1.0);
+  EXPECT_EQ(a[1], 2.0);
+  EXPECT_EQ(a[2], 3.0);
+  EXPECT_EQ(a.x, 1.0);
+  EXPECT_EQ(a.y, 2.0);
+  EXPECT_EQ(a.z, 3.0);
+  EXPECT_EQ(sizeof(a), sizeof(double) * 4);
+  EXPECT_TRUE(AbstractVector3<simd::Vector3<double>>);
+  EXPECT_TRUE(Vec3<simd::Vector3<double>>);
 
+  auto b = a + a;
+  EXPECT_EQ(a * 2.0, a + a);
 }
+
+}  // namespace se3

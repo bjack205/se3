@@ -38,6 +38,12 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE nanobind_ROOT)
 find_package(nanobind CONFIG REQUIRED)
 
+# Enable AVX and AVX2 for SIMD code
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+  add_compile_options(-mavx -mavx2)
+elseif (MSVC)
+  add_compile_options(/arch:AVX2)
+endif()
 
 # Dependencies
 CPMAddPackage(
@@ -66,4 +72,3 @@ endif()
 
 # Install
 install(TARGETS se3_ext LIBRARY DESTINATION se3)
-
