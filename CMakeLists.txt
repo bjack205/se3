@@ -38,6 +38,22 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE nanobind_ROOT)
 find_package(nanobind CONFIG REQUIRED)
 
+
+# Dependencies
+CPMAddPackage(
+    NAME Eigen
+    VERSION 3.4.0
+    URL https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+    # Eigen's CMakelists are not intended for library use
+    DOWNLOAD_ONLY YES
+)
+
+if(Eigen_ADDED)
+  add_library(Eigen INTERFACE IMPORTED
+      test/vector_tests.cpp)
+  target_include_directories(Eigen INTERFACE ${Eigen_SOURCE_DIR})
+endif()
+
 # Build
 add_subdirectory(src/se3)
 

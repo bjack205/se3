@@ -18,13 +18,9 @@ function(add_se3_test NAME)
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
     add_executable(${NAME} ${ARG_SOURCES})
     target_link_libraries(${NAME} PRIVATE gtest::gtest ${ARG_LIBRARIES})
-    # target_include_directories(${NAME} PRIVATE ${PROJECT_SOURCE_DIR}/src)
-    add_test(NAME ${NAME} COMMAND ${NAME})
+    gtest_discover_tests(${NAME})
 endfunction()
 
-add_se3_test(quaternion_test
-    SOURCES
-        quaternion_test.cpp
-    LIBRARIES
-        se3::attitude
-)
+add_se3_test(quaternion_test SOURCES quaternion_test.cpp LIBRARIES se3::attitude)
+add_se3_test(vector_concepts_test SOURCES vector_concepts_test.cpp LIBRARIES se3::attitude Eigen)
+add_se3_test(vector_tests SOURCES vector_tests.cpp LIBRARIES se3::attitude)
