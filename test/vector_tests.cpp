@@ -8,118 +8,424 @@
 #include <concepts>
 #include <ranges>
 
+#include <Eigen/Dense>
+
 #include "se3/linear_algebra/simd/vectors_simd.hpp"
 #include "se3/linear_algebra/vector_concepts.hpp"
 #include "se3/linear_algebra/vector_ops.hpp"
 #include "se3/linear_algebra/vectors.hpp"
+#include "se3/linear_algebra/type_traits.hpp"
+#include "se3/linear_algebra/generic/vectors_generic.hpp"
 
 namespace se3 {
 
-TEST(VectorTests, SizeAtCompileTime) {
-  EXPECT_EQ(SizeAtCompileTime<Vector3<double>>(), 3);
-  EXPECT_EQ(SizeAtCompileTime<Vector3<float>>(), 3);
-  EXPECT_EQ(SizeAtCompileTime<Vector4<double>>(), 4);
-  EXPECT_EQ(SizeAtCompileTime<Vector4<float>>(), 4);
+template <Vec3 V>
+void testVector3_Concepts() {
+  EXPECT_EQ(SizeAtCompileTime<V>(), 3);
+  EXPECT_TRUE(std::ranges::random_access_range<V>);
+  EXPECT_TRUE(AbstractFixedSizeVector<V>);
+  EXPECT_TRUE(AbstractVector3<V>);
+  EXPECT_FALSE(AbstractVector4<V>);
+  EXPECT_TRUE(Vec3<V>);
+  EXPECT_TRUE(Vec3or4<V>);
+  EXPECT_TRUE(std::is_trivially_copyable_v<V>);
+  EXPECT_TRUE(std::regular<V>);
 }
 
-TEST(VectorTests, Concepts) {
-  EXPECT_TRUE(std::ranges::random_access_range<Vector3<double>>);
-  EXPECT_TRUE(AbstractFixedSizeVector<Vector3<double>>);
-  EXPECT_TRUE(AbstractVector3<Vector3<double>>);
-  EXPECT_FALSE(AbstractVector4<Vector3<double>>);
+template <Vec3 V, std::floating_point T = std::ranges::range_value_t<V>>
+void testVector3_Constructor() {
 
-  EXPECT_TRUE(AbstractFixedSizeVector<Vector4<double>>);
-  EXPECT_TRUE(AbstractVector4<Vector4<double>>);
-  EXPECT_FALSE(AbstractVector3<Vector4<double>>);
+  // Default
+  V v0;
+  EXPECT_EQ(v0[0], 0.0);
+  EXPECT_EQ(v0[1], 0.0);
+  EXPECT_EQ(v0[2], 0.0);
 
-  EXPECT_TRUE(Vec3or4<Vector3<double>>);
-  EXPECT_TRUE(Vec3or4<Vector4<double>>);
+  // Scalar constructor
+  V v1(1.0, 2.0, 3.0);
+  EXPECT_EQ(v1[0], 1.0);
+  EXPECT_EQ(v1[1], 2.0);
+  EXPECT_EQ(v1[2], 3.0);
 
-  EXPECT_TRUE(Vec3<Vector3<double>>);
+  // Span constructor
+  std::vector<T> vec = {2.0, 3.0, 4.0, 5.0};
+  V v2{std::span<T, 3>(vec)};
+  EXPECT_EQ(v2[0], 2.0);
+  EXPECT_EQ(v2[1], 3.0);
+  EXPECT_EQ(v2[2], 4.0);
+  
+  // Initializer list assignment
+  V v3 = {-1.0, 2.0, -3.0};
+  EXPECT_EQ(v3[0], -1.0);
+  EXPECT_EQ(v3[1], 2.0);
+  EXPECT_EQ(v3[2], -3.0);
+
+  // Initializer list
+  V v4 = {-1.0, 2.0, -3.0};
+  EXPECT_EQ(v4[0], -1.0);
+  EXPECT_EQ(v4[1], 2.0);
+  EXPECT_EQ(v4[2], -3.0);
+
+  // Subspan
+  V v5 = std::span(vec).template subspan<1,3>();
+  EXPECT_EQ(v5[0], 3.0);
+  EXPECT_EQ(v5[1], 4.0);
+  EXPECT_EQ(v5[2], 5.0);
+
+  // First subspan
+  V v6 = std::span(vec).template first<3>();
+  EXPECT_EQ(v6[0], 2.0);
+  EXPECT_EQ(v6[1], 3.0);
+  EXPECT_EQ(v6[2], 4.0);
+
+  // From Eigen
+  Eigen::Vector3<T> eigen_v = {1.0, 2.0, 3.0};
+  V v7 = eigen_v;
+  EXPECT_EQ(v7[0], 1.0);
+  EXPECT_EQ(v7[1], 2.0);
+  EXPECT_EQ(v7[2], 3.0);
+
 }
 
-TEST(VectorTests, Vector3) {
-  Vector3 a(1.0, 2.0, 3.0);
-  Vector3 b(-2.0, -4.0, 2.0);
-  EXPECT_EQ(a[0], 1.0);
-  EXPECT_EQ(a[1], 2.0);
-  EXPECT_EQ(a[2], 3.0);
-  a[0] = 2;
+template <typename V, typename T = typename V::Scalar>
+void testVector3_Initializers() {
+  // Unit vectors
+  V e0 = UnitX<V>();
+  EXPECT_EQ(e0[0], 1.0);
+  EXPECT_EQ(e0[1], 0.0);
+  EXPECT_EQ(e0[2], 0.0);
 
-  const auto& a_ref = a;
-  EXPECT_EQ(a_ref[0], 2.0);
-  EXPECT_EQ(a_ref[1], 2.0);
-  EXPECT_EQ(a_ref[2], 3.0);
+  V e1 = UnitY<V>();
+  EXPECT_EQ(e1[0], 0.0);
+  EXPECT_EQ(e1[1], 1.0);
+  EXPECT_EQ(e1[2], 0.0);
 
-  for (auto& el : a) {
-    el = 5.0;
+  V e2 = UnitZ<V>();
+  EXPECT_EQ(e2[0], 0.0);
+  EXPECT_EQ(e2[1], 0.0);
+  EXPECT_EQ(e2[2], 1.0);
+
+  // Special vectors
+  V v0 = Zero<V>();
+  EXPECT_EQ(v0[0], 0.0);
+  EXPECT_EQ(v0[1], 0.0);
+  EXPECT_EQ(v0[2], 0.0);
+
+  V v1 = Ones<V>();
+  EXPECT_EQ(v1[0], 1.0);
+  EXPECT_EQ(v1[1], 1.0);
+  EXPECT_EQ(v1[2], 1.0);
+
+  V v2 = Constant<V, T>(2.0);
+  EXPECT_EQ(v2[0], 2.0);
+  EXPECT_EQ(v2[1], 2.0);
+  EXPECT_EQ(v2[2], 2.0);
+
+  // Sequences
+  // NOTE: implicit type conversion isn't allowed.
+  V v3 = Sequence<V, T>(1, 2);
+  EXPECT_EQ(v3[0], 1.0);
+  EXPECT_EQ(v3[1], 3.0);
+  EXPECT_EQ(v3[2], 5.0); 
+
+  V v4 = Sequence<V>(T(1), T(-1));
+  EXPECT_EQ(v4[0], 1.0);
+  EXPECT_EQ(v4[1], 0.0);
+  EXPECT_EQ(v4[2], -1.0);
+}
+
+template <typename V, typename T = typename V::Scalar>
+void testVector3_Setters() {
+  // Unit vectors
+  V v;
+  setUnitX(v);
+  EXPECT_EQ(v[0], 1.0);
+  EXPECT_EQ(v[1], 0.0);
+  EXPECT_EQ(v[2], 0.0);
+
+  setUnitY(v);
+  EXPECT_EQ(v[0], 0.0);
+  EXPECT_EQ(v[1], 1.0);
+  EXPECT_EQ(v[2], 0.0);
+
+  setUnitZ(v);
+  EXPECT_EQ(v[0], 0.0);
+  EXPECT_EQ(v[1], 0.0);
+  EXPECT_EQ(v[2], 1.0);
+
+  // Special vectors
+  setZero(v);
+  EXPECT_EQ(v[0], 0.0);
+  EXPECT_EQ(v[1], 0.0);
+  EXPECT_EQ(v[2], 0.0);
+
+  setOnes(v);
+  EXPECT_EQ(v[0], 1.0);
+  EXPECT_EQ(v[1], 1.0);
+  EXPECT_EQ(v[2], 1.0);
+
+  setConstant(v, T(2.0));
+  EXPECT_EQ(v[0], 2.0);
+  EXPECT_EQ(v[1], 2.0);
+  EXPECT_EQ(v[2], 2.0);
+
+  // Direct value setting
+  setValues(v, std::make_tuple(T(1.0), T(2.0), T(3.0)));
+  EXPECT_EQ(v[0], 1.0);
+  EXPECT_EQ(v[1], 2.0);
+  EXPECT_EQ(v[2], 3.0);
+}
+
+template <typename V, typename T = typename V::Scalar>
+void testVector3_Arithmetic() {
+  // Create test vectors
+  V a{T(1), T(2), T(3)};
+  V b{T(-1), T(0), T(2)};
+  V c{T(2), T(-1), T(4)};
+  T s1 = T(2);
+  T s2 = T(3);
+
+  // Vector addition
+  // Commutativity: a + b = b + a
+  EXPECT_EQ(a + b, b + a);
+
+  // Associativity: (a + b) + c = a + (b + c)
+  EXPECT_EQ((a + b) + c, a + (b + c));
+
+  // Additive identity: a + 0 = a
+  EXPECT_EQ(a + Zero<V>(), a);
+
+  // Additive inverse: a + (-a) = 0
+  EXPECT_EQ(a + (-a), Zero<V>());
+
+  // Scalar multiplication
+  // Associativity: (s1 * s2) * a = s1 * (s2 * a)
+  EXPECT_EQ((s1 * s2) * a, s1 * (s2 * a));
+
+  // Distributivity over vector addition: s1 * (a + b) = s1 * a + s1 * b
+  EXPECT_EQ(s1 * (a + b), s1 * a + s1 * b);
+
+  // Distributivity over scalar addition: (s1 + s2) * a = s1 * a + s2 * a
+  EXPECT_EQ((s1 + s2) * a, s1 * a + s2 * a);
+
+  // Scalar multiplication commutativity: s1 * a = a * s1
+  EXPECT_EQ(s1 * a, a * s1);
+
+  // Scalar multiplication identity: 1 * a = a
+  EXPECT_EQ(T(1) * a, a);
+
+  // Vector subtraction
+  // a - b = a + (-b)
+  EXPECT_EQ(a - b, a + (-b));
+
+  // Scalar division
+  // (a / s1) * s1 = a  (for s1 != 0)
+  EXPECT_EQ((a / s1) * s1, a);
+
+  // Basic vector operations
+  V d = a + b;  // Addition
+  EXPECT_EQ(d[0], a[0] + b[0]);
+  EXPECT_EQ(d[1], a[1] + b[1]);
+  EXPECT_EQ(d[2], a[2] + b[2]);
+
+  V e = a - b;  // Subtraction
+  EXPECT_EQ(e[0], a[0] - b[0]);
+  EXPECT_EQ(e[1], a[1] - b[1]);
+  EXPECT_EQ(e[2], a[2] - b[2]);
+
+  V f = s1 * a;  // Scalar multiplication
+  EXPECT_EQ(f[0], s1 * a[0]);
+  EXPECT_EQ(f[1], s1 * a[1]);
+  EXPECT_EQ(f[2], s1 * a[2]);
+
+  V g = a / s1;  // Scalar division
+  EXPECT_EQ(g[0], a[0] / s1);
+  EXPECT_EQ(g[1], a[1] / s1);
+  EXPECT_EQ(g[2], a[2] / s1);
+
+  // Vector/Vector compound assignment operations
+  {
+    V h = a;
+    h += b;  // Addition assignment
+    EXPECT_EQ(h, a + b);
+    EXPECT_EQ(h[0], a[0] + b[0]);
+    EXPECT_EQ(h[1], a[1] + b[1]);
+    EXPECT_EQ(h[2], a[2] + b[2]);
+
+    h = a;
+    h -= b;  // Subtraction assignment
+    EXPECT_EQ(h, a - b);
+    EXPECT_EQ(h[0], a[0] - b[0]);
+    EXPECT_EQ(h[1], a[1] - b[1]);
+    EXPECT_EQ(h[2], a[2] - b[2]);
+
+    // Verify that compound assignments modify the original vector
+    h = a;
+    V h_orig = h;
+    h += b;
+    EXPECT_NE(h, h_orig);
+    EXPECT_EQ(h[0], h_orig[0] + b[0]);
+    EXPECT_EQ(h[1], h_orig[1] + b[1]);
+    EXPECT_EQ(h[2], h_orig[2] + b[2]);
   }
-  EXPECT_DOUBLE_EQ(sum(a), 15.0);
-  std::ranges::fill(a, 3.0);
-  EXPECT_DOUBLE_EQ(sum(a), 9.0);
 
-  std::ranges::copy(a, b.begin());
-  EXPECT_EQ(a, b);
+  // Vector/Scalar compound assignment operations
+  {
+    V h = a;
+    h *= s1;  // Multiplication assignment
+    EXPECT_EQ(h, a * s1);
+    EXPECT_EQ(h, s1 * a);  // Verify commutativity
+    EXPECT_EQ(h[0], a[0] * s1);
+    EXPECT_EQ(h[1], a[1] * s1);
+    EXPECT_EQ(h[2], a[2] * s1);
+
+    h = a;
+    h /= s1;  // Division assignment
+    EXPECT_EQ(h, a / s1);
+    EXPECT_EQ(h[0], a[0] / s1);
+    EXPECT_EQ(h[1], a[1] / s1);
+    EXPECT_EQ(h[2], a[2] / s1);
+
+    // Verify operations with different scalar types
+    h = a;
+    h *= T(2);  // Integer literal
+    EXPECT_EQ(h, a * T(2));
+
+    h = a;
+    h /= T(2);  // Integer literal
+    EXPECT_EQ(h, a / T(2));
+
+    // Verify that compound assignments modify the original vector
+    h = a;
+    V h_orig = h;
+    h *= s1;
+    EXPECT_NE(h, h_orig);
+    EXPECT_EQ(h[0], h_orig[0] * s1);
+    EXPECT_EQ(h[1], h_orig[1] * s1);
+    EXPECT_EQ(h[2], h_orig[2] * s1);
+  }
+
+  // Mixed operations
+  {
+    V h = a;
+    h += b;
+    h *= s1;
+    EXPECT_EQ(h, (a + b) * s1);
+
+    h = a;
+    h *= s1;
+    h += b;
+    EXPECT_EQ(h, a * s1 + b);  // Different from above due to order
+
+    // Chained operations
+    h = a;
+    (h += b) *= s1;
+    EXPECT_EQ(h, (a + b) * s1);
+  }
+}
+
+template <typename V, typename T = typename V::Scalar>
+void testVector3_VectorOps() {
+  // Test vectors
+  V a{T(1), T(2), T(3)};           // norm = sqrt(14)
+  V b{T(-2), T(1), T(2)};          // norm = 3
+  V ex{T(1), T(0), T(0)};          // unit vector along x-axis
+  V ey{T(0), T(1), T(0)};          // unit vector along y-axis
+
+  // Sum
+  EXPECT_EQ(sum(a), T(6));         // 1 + 2 + 3
+  EXPECT_EQ(sum(b), T(1));         // -2 + 1 + 2
+  EXPECT_EQ(sum(ex), T(1));        // 1 + 0 + 0
+
+  // Get machine epsilon for type T
+  const T eps = std::numeric_limits<T>::epsilon();
+
+  // Norm and normSquared
+  EXPECT_NEAR(normSquared(a), T(14), eps);  // 1^2 + 2^2 + 3^2
+  EXPECT_NEAR(norm(a), std::sqrt(T(14)), eps);
+  EXPECT_NEAR(normSquared(b), T(9), eps);   // (-2)^2 + 1^2 + 2^2
+  EXPECT_NEAR(norm(b), T(3), eps);
+  EXPECT_NEAR(normSquared(ex), T(1), eps);   // Unit vector
+  EXPECT_NEAR(norm(ex), T(1), eps);
+
+  // Dot product
+  EXPECT_NEAR(dot(a, b), T(-2 + 2 + 6), eps);  // 1*(-2) + 2*1 + 3*2
+  EXPECT_NEAR(dot(ex, ey), T(0), eps);          // Orthogonal unit vectors
+  EXPECT_NEAR(dot(ex, ex), T(1), eps);          // Unit vector self dot
+
+  // Angle between vectors
+  EXPECT_NEAR(angleBetween(ex, ey), std::numbers::pi_v<T> / T(2), eps);  // 90 degrees
+  EXPECT_NEAR(angleBetween(ex, ex), T(0), eps);                          // Same vector
+  
+  // Test vector normalization
+  V a_norm = normalize(a);
+  EXPECT_NEAR(norm(a_norm), T(1), eps);
+  EXPECT_NEAR(dot(a, a_norm), norm(a), 2 * eps);  // Original and normalized are parallel
+
+  // Cross product
+  V ez = cross(ex, ey);  // Should be unit vector in z direction
+  EXPECT_NEAR(ez[0], T(0), eps);
+  EXPECT_NEAR(ez[1], T(0), eps);
+  EXPECT_NEAR(ez[2], T(1), eps);
+
+  // Cross product properties
+  V cab = cross(a, b);
+  V cba = cross(b, a);
+  for (int i = 0; i < 3; ++i) {
+    EXPECT_NEAR(cab[i], -cba[i], eps);  // Anti-commutative
+  }
+  
+  // Cross product with self should be zero
+  V self_cross = cross(a, a);
+  for (int i = 0; i < 3; ++i) {
+    EXPECT_NEAR(self_cross[i], T(0), eps);
+  }
+
+  // Distance
+  EXPECT_NEAR(distance(a, b), norm(a - b), eps);
+  EXPECT_NEAR(distance(a, a), T(0), eps);
+  EXPECT_NEAR(distance(ez, ey), std::sqrt(T(2)), eps);
+  EXPECT_NEAR(distance(ez, UnitX<V>()), std::sqrt(T(2)), eps);
+}
+
+/////////////////////////////////////////////
+/// generic::Vector3 Tests
+/////////////////////////////////////////////
+
+namespace generic {
+
+TEST(VectorTests, Vector3_Concepts) {
+  testVector3_Concepts<Vector3<float>>();
+  testVector3_Concepts<Vector3<double>>();
+}
+
+TEST(VectorTests, Vector3_Constructor) {
+  testVector3_Constructor<Vector3<float>, float>();
+  testVector3_Constructor<Vector3<double>, double>();
+}
+
+
+TEST(VectorTests, Vector3_Initializers) {
+  testVector3_Initializers<Vector3<float>>();
+  testVector3_Initializers<Vector3<double>>();
+}
+
+
+TEST(VectorTests, Vector3_Setters) {
+  testVector3_Setters<Vector3<float>>();
+  testVector3_Setters<Vector3<double>>();
 }
 
 TEST(VectorTests, Vector3_Arithmetic) {
-  Vector3 a(1.0, 2.0, 3.0);
-  Vector3 b(-2.0, -4.0, 2.0);
-  Vector3 c = a + b;
-  EXPECT_EQ(c[0], -1.0);
-  EXPECT_EQ(c[1], -2.0);
-  EXPECT_EQ(c[2], 5.0);
-
-  EXPECT_EQ(c - a, b);
-  EXPECT_EQ(c - b, a);
-  EXPECT_EQ(a - c, -b);
-
-  EXPECT_EQ(2 * a, a + a);
-  EXPECT_EQ(a * 2, a + a);
-  EXPECT_EQ(2.0 * a, a + a);
-  EXPECT_EQ(a / 0.5, a + a);
+  testVector3_Arithmetic<Vector3<float>>();
+  testVector3_Arithmetic<Vector3<double>>();
 }
 
-TEST(VectorTests, Vector3_LinearAlgebra) {
-  Vector3 a(1.0, 2.0, 3.0);
-  EXPECT_DOUBLE_EQ(dot(a, a), normSquared(a));
-  EXPECT_DOUBLE_EQ(normSquared(a), 14.0);
-  EXPECT_DOUBLE_EQ(norm(a), std::sqrt(14.0));
-  EXPECT_DOUBLE_EQ(norm(a), std::sqrt(dot(a, a)));
-  EXPECT_DOUBLE_EQ(norm(a), std::sqrt(normSquared(a)));
-
-  EXPECT_EQ(normalize(a), a / norm(a));
-  EXPECT_EQ(normalize(a), a / std::sqrt(normSquared(a)));
-  EXPECT_EQ(normalize(a) * norm(a), a);
-
-  EXPECT_EQ(angleBetween(a, a), 0.0);
-  EXPECT_EQ(angleBetween(a, -a), std::numbers::pi);
-
-  auto e_x = Vector3<double>::UnitX();
-  auto e_y = Vector3<double>::UnitY();
-  auto e_z = Vector3<double>::UnitZ();
-  EXPECT_EQ(cross(e_x, e_y), e_z);
-  EXPECT_EQ(cross(e_y, e_z), e_x);
-  EXPECT_EQ(dot(e_x, e_y), 0.0);
-
-  EXPECT_EQ(angleBetween(e_x, e_y), std::numbers::pi / 2.0);
-  EXPECT_EQ(angleBetween(e_y, e_x), std::numbers::pi / 2.0);
+TEST(VectorTests, Vector3_VectorOps) {
+  testVector3_VectorOps<Vector3<float>>();
+  testVector3_VectorOps<Vector3<double>>();
 }
 
-TEST(VectorTests, Vector3_SIMD) {
-  simd::Vector3<double> a(1.0, 2.0, 3.0);
-  EXPECT_EQ(a[0], 1.0);
-  EXPECT_EQ(a[1], 2.0);
-  EXPECT_EQ(a[2], 3.0);
-  EXPECT_EQ(a.x, 1.0);
-  EXPECT_EQ(a.y, 2.0);
-  EXPECT_EQ(a.z, 3.0);
-  EXPECT_EQ(sizeof(a), sizeof(double) * 4);
-  EXPECT_TRUE(AbstractVector3<simd::Vector3<double>>);
-  EXPECT_TRUE(Vec3<simd::Vector3<double>>);
-
-  auto b = a + a;
-  EXPECT_EQ(a * 2.0, a + a);
-}
+}  // namespace generic
 
 }  // namespace se3

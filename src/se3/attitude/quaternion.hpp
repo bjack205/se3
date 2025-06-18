@@ -6,11 +6,25 @@ constexpr bool kInitializeQuatToIdentity = QUAT_INIT_TO_IDENTITY;
 constexpr bool kInitializeQuatToIdentity = true;
 #endif
 
-#include "../linear_algebra/vector_concepts.hpp"
+#include "se3/linear_algebra/vector_concepts.hpp"
 
 namespace se3 {
 
-template <std::floating_point T> struct Quaternion {
+template <typename Q, typename T = std::ranges::range_value_t<Q>>
+concept AbstractQuaternion =
+    std::ranges::random_access_range<Q> and std::regular<Q> and
+    std::floating_point<T> and requires(Q q, Q other) {
+      { q.w } -> std::convertible_to<T>;
+      { q.x } -> std::convertible_to<T>;
+      { q.y } -> std::convertible_to<T>;
+      { q.z } -> std::convertible_to<T>;
+      { q == other } -> std::convertible_to<bool>;
+      { q != other } -> std::convertible_to<bool>;
+      Q::Identity();
+    };
+
+template <std::floating_point T>
+struct Quaternion {
   static constexpr std::size_t SizeAtCompileTime = 4;
 
   Quaternion() = default;
@@ -38,12 +52,8 @@ template <std::floating_point T> struct Quaternion {
   T *begin() { return &w; }
   T *end() { return &z + 1; }
 
-  const T &operator[](int i) const {
-    return (&w)[i];
-  }
-  T &operator[](int i) {
-    return (&w)[i];
-  }
+  const T &operator[](int i) const { return (&w)[i]; }
+  T &operator[](int i) { return (&w)[i]; }
 
   T w = static_cast<T>(kInitializeQuatToIdentity);
   T x = 0;
@@ -51,4 +61,4 @@ template <std::floating_point T> struct Quaternion {
   T z = 0;
 };
 
-} // namespace se3
+}  // namespace se3

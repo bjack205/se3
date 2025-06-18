@@ -22,9 +22,9 @@ struct alignas(32) Vector3<double> {
   union {
     __m256d data_;
     struct {
-      double x, y, z, w;
+      double x, y, z;
     };
-    double arr[4];
+    double arr[3];
   };
 
   // Constructors

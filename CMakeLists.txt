@@ -46,6 +46,7 @@ elseif (MSVC)
 endif()
 
 # Dependencies
+# TODO: make this optional
 CPMAddPackage(
     NAME Eigen
     VERSION 3.4.0
