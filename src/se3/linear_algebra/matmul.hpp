@@ -1,3 +1,5 @@
+#pragma once
+
 #include "matrices.hpp"
 #include "type_traits.hpp"
 

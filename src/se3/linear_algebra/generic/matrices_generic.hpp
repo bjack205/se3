@@ -8,20 +8,32 @@ namespace se3::generic {
 
 template <std::floating_point T>
 struct Matrix3 {
-  static constexpr int kRowsAtCompileTime = 3;
-  static constexpr int kColsAtCompileTime = 3;
+  static constexpr int RowsAtCompileTime = 3;
+  static constexpr int ColsAtCompileTime = 3;
+  static constexpr int SizeAtCompileTime = RowsAtCompileTime * ColsAtCompileTime;
 
   // TODO: add compile flag to control default constructor (identity or zero)
   Matrix3()
       : m00(1),
-        m10(0),
-        m20(0),
         m01(0),
-        m11(1),
-        m21(0),
         m02(0),
+        m10(0),
+        m11(1),
         m12(0),
+        m20(0),
+        m21(0),
         m22(1) {}
+
+  Matrix3(T m00, T m10, T m20, T m01, T m11, T m21, T m02, T m12, T m22)
+      : m00(m00),
+        m01(m10),
+        m02(m20),
+        m10(m01),
+        m11(m11),
+        m12(m21),
+        m20(m02),
+        m21(m12),
+        m22(m22) {}
 
   static Matrix3 identity() { return {1, 0, 0, 0, 1, 0, 0, 0, 1}; }
 
@@ -34,15 +46,23 @@ struct Matrix3 {
   T* data() { return &m00; }
   const T* data() const { return &m00; }
 
-  int rows() const { return kRowsAtCompileTime; }
-  int cols() const { return kColsAtCompileTime; }
-  std::size_t size() const { return kRowsAtCompileTime * kColsAtCompileTime; }
+  int rows() const { return RowsAtCompileTime; }
+  int cols() const { return ColsAtCompileTime; }
+
+  std::size_t size() const { return RowsAtCompileTime * ColsAtCompileTime; }
+  T& operator[](const int i) { return (&m00)[i]; }
+  const T& operator[](const int i) const { return (&m00)[i]; }
+
+  T* begin() { return &m00; }
+  T* end() { return &m22 + 1; }
+  const T* begin() const { return &m00; }
+  const T* end() const { return &m22 + 1; }
 
   T& operator()(const int row, const int col) {
-    return (&m00)[col + row * kColsAtCompileTime];
+    return (&m00)[col + row * ColsAtCompileTime];
   }
   const T& operator()(const int row, const int col) const {
-    return (&m00)[col + row * kColsAtCompileTime];
+    return (&m00)[col + row * ColsAtCompileTime];
   }
 
   auto operator<=>(const Matrix3& other) const = default;

@@ -1,4 +1,7 @@
+#pragma once
+
 #include <concepts>
+#include <ostream>
 
 #ifdef QUAT_INIT_TO_IDENTITY
 constexpr bool kInitializeQuatToIdentity = QUAT_INIT_TO_IDENTITY;
@@ -6,20 +9,22 @@ constexpr bool kInitializeQuatToIdentity = QUAT_INIT_TO_IDENTITY;
 constexpr bool kInitializeQuatToIdentity = true;
 #endif
 
+#include "se3/linear_algebra/generic/matrices_generic.hpp"
 #include "se3/linear_algebra/vector_concepts.hpp"
+#include "se3/linear_algebra/type_traits.hpp"
 
 namespace se3 {
 
 template <typename Q, typename T = std::ranges::range_value_t<Q>>
 concept AbstractQuaternion =
-    std::ranges::random_access_range<Q> and std::regular<Q> and
-    std::floating_point<T> and requires(Q q, Q other) {
+    Vec4<Q> and requires(Q q, Q other, T val) {
       { q.w } -> std::convertible_to<T>;
       { q.x } -> std::convertible_to<T>;
       { q.y } -> std::convertible_to<T>;
       { q.z } -> std::convertible_to<T>;
       { q == other } -> std::convertible_to<bool>;
       { q != other } -> std::convertible_to<bool>;
+      { Q(val, val, val, val) } -> std::convertible_to<Q>;
       Q::Identity();
     };
 
@@ -55,10 +60,30 @@ struct Quaternion {
   const T &operator[](int i) const { return (&w)[i]; }
   T &operator[](int i) { return (&w)[i]; }
 
+  auto operator<=>(const Quaternion &other) const = default;
+
   T w = static_cast<T>(kInitializeQuatToIdentity);
   T x = 0;
   T y = 0;
   T z = 0;
 };
+
+template <AbstractQuaternion Q>
+struct Mat4TypeFor {
+  using type = generic::Matrix4<std::ranges::range_value_t<Q>>;
+};
+
+template <std::floating_point T>
+struct Mat3TypeFor<Quaternion<T>> {
+  using type = generic::Matrix3<T>;
+};
+
+template <Vec3 V>
+struct QuatTypeFor {
+  using type = Quaternion<std::ranges::range_value_t<V>>;
+};
+
+template <Vec3 V>
+using QuatTypeFor_t = typename QuatTypeFor<V>::type;
 
 }  // namespace se3
