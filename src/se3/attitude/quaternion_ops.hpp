@@ -51,7 +51,7 @@ Q operator*(const Q &q1, const Q &q2) {
 }
 
 template <AbstractQuaternion Q>
-Mat3TypeFor_t<Q> rotationMatrix(const Q &q) {
+Mat3TypeFor<Q> rotationMatrix(const Q &q) {
   using T = std::ranges::range_value_t<Q>;
   T ww = q.w * q.w;
   T xx = q.x * q.x;
@@ -142,7 +142,7 @@ auto angleBetween(const Q &q1, const Q &q2) {
   using T = std::ranges::range_value_t<Q>;
 
   // Compute the dot product
-  T d = dot(q1, q2);
+  T d = dot(normalize(q1), normalize(q2));
 
   // Clamp to [-1, 1] to avoid domain errors in acos
   d = std::clamp(d, T(-1), T(1));
@@ -162,5 +162,45 @@ Q flipToPositiveScalar(const Q &q) {
   }
   return q.w > 0 ? q : flipQuaternion(q);
 }
+
+namespace quatmats {
+template <AbstractQuaternion Q, Mat4 M = Mat4TypeFor<Q>>
+M L(const Q &q) {
+  // clang-format off
+  return {
+    q.w, -q.x, -q.y, -q.z,
+    q.x, q.w, -q.z, q.y,
+    q.y, q.z, q.w, -q.x,
+    q.z, -q.y, q.x, q.w
+  };
+  // clang-format on
+}
+
+template <AbstractQuaternion Q, Mat4 M = Mat4TypeFor<Q>>
+M R(const Q &q) {
+  // clang-format off
+  return {
+    q.w, -q.x, -q.y, -q.z,
+    q.x, q.w, +q.z, -q.y,
+    q.y, -q.z, q.w, +q.x,
+    q.z, +q.y, -q.x, q.w
+  };
+  // clang-format on
+}
+
+// TODO: this should be a Diag4
+template <Mat4 M = generic::Matrix4<double>>
+M T() {
+  // clang-format off
+  return {
+    1, 0, 0, 0,
+    0, -1, 0, 0,
+    0, 0, -1, 0,
+    0, 0, 0, -1
+  };
+  // clang-format on
+}
+
+}  // namespace quatmats
 
 }  // namespace se3

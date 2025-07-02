@@ -8,6 +8,7 @@
 
 #include "se3/attitude/quaternion_ops.hpp"
 #include "se3/linear_algebra/generic/matrices_generic.hpp"
+#include "se3/linear_algebra/transpose.hpp"
 
 namespace se3 {
 
@@ -152,13 +153,13 @@ void TestQuaternionComposition() {
   // Check conjugate
   q1 = Q(0, 1, 2, 3);
   q2 = Q(0, -1, -2, -3);
-  EXPECT_LT(angleBetween(conjugate(q1), q2), tol);
+  EXPECT_LT(norm(conjugate(q1) - q2), tol);
 
   // Check inverse
   q1 = Q(-1, 1, 2, 3);
   EXPECT_NEAR(normSquared(q1), 15.0, tol);
-  q2 = Q(1.0 / 15.0, -1.0 / 15.0, -2.0 / 15.0, -3.0 / 15.0);
-  EXPECT_LT(angleBetween(q1, q2), tol);
+  q2 = Q(-1.0 / 15.0, -1.0 / 15.0, -2.0 / 15.0, -3.0 / 15.0);
+  EXPECT_LT(norm(inverse(q1) - q2), tol);
 
   // Check multiplication by inverse
   q1 = Q(-1, 1, 2, 3);
@@ -297,6 +298,23 @@ void TestQuaternionExpLog() {
 TEST(QuaternionTests, ExponentialAndLogarithmMaps) {
   TestQuaternionExpLog<Quaternion<double>, generic::Vector3<double>>();
   TestQuaternionExpLog<Quaternion<float>, generic::Vector3<float>>();
+}
+
+TEST(QuaternionTests, QuatMats) {
+  using Q = Quaternion<double>;
+  using namespace quatmats;
+
+  std::mt19937 gen(0);
+  std::normal_distribution dist(0.0);
+  auto q0 = normalize(Q(dist(gen), dist(gen), dist(gen), dist(gen)));
+  auto q1 = normalize(Q(dist(gen), dist(gen), dist(gen), dist(gen)));
+
+  EXPECT_LT(angleBetween(q0 * q1, L(q0) * q1), 1e-10);
+  EXPECT_LT(angleBetween(q0 * q1, R(q1) * q0), 1e-10);
+  EXPECT_LT(angleBetween(inverse(q0) * q1, Transpose(L(q0)) * q1), 1e-10);
+  EXPECT_LT(angleBetween(q0 * inverse(q1), Transpose(R(q1)) * q0), 1e-10);
+  EXPECT_LT(angleBetween(inverse(q0), T() * q0), 1e-10);
+  EXPECT_LT(angleBetween(q0 * inverse(q1), L(q0) * (T() * q1)), 1e-10);
 }
 
 }  // namespace se3

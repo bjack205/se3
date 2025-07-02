@@ -1,6 +1,7 @@
 #pragma once
 
 #include "matrices.hpp"
+#include "transpose.hpp"
 #include "type_traits.hpp"
 
 namespace se3 {
@@ -8,7 +9,6 @@ namespace se3 {
 /////////////////////////////////////////////
 /// 3x3 Operations
 /////////////////////////////////////////////
-
 
 template <Mat3 M, Vec3 V>
 V operator*(const M& m, const V& v) {
@@ -54,25 +54,36 @@ M operator*(const M& m1, const M& m2) {
           m1(2, 0) * m2(0, 2) + m1(2, 1) * m2(1, 2) + m1(2, 2) * m2(2, 2)};
 }
 
-// The following methods default to returning a Matrix3. Need to make sure this can
-// be specialized for specific vector types.
+// The following methods default to returning a Matrix3. Need to make sure this
+// can be specialized for specific vector types.
 
 template <Vec3 V, std::floating_point T = std::ranges::range_value_t<V>>
-Mat3TypeFor_t<V> outerProduct(const V& v1, const V& v2) {
+Mat3TypeFor<V> outerProduct(const V& v1, const V& v2) {
   return {v1[0] * v2[0], v1[0] * v2[1], v1[0] * v2[2],
           v1[1] * v2[0], v1[1] * v2[1], v1[1] * v2[2],
           v1[2] * v2[0], v1[2] * v2[1], v1[2] * v2[2]};
 }
 
 template <Vec3 V>
-Mat3TypeFor_t<V> skew(const V& v) {
-  return {0, -v[2], v[1],
-          v[2], 0, -v[0],
-          -v[1], v[0], 0};
+Mat3TypeFor<V> skew(const V& v) {
+  return {0, -v[2], v[1], v[2], 0, -v[0], -v[1], v[0], 0};
 }
 
 /////////////////////////////////////////////
 /// 4x4 Operations
 /////////////////////////////////////////////
+
+template <Mat4 M, Vec4 V>
+V operator*(const M& m, const V& v) {
+  return {m(0, 0) * v[0] + m(0, 1) * v[1] + m(0, 2) * v[2] + m(0, 3) * v[3],
+          m(1, 0) * v[0] + m(1, 1) * v[1] + m(1, 2) * v[2] + m(1, 3) * v[3],
+          m(2, 0) * v[0] + m(2, 1) * v[1] + m(2, 2) * v[2] + m(2, 3) * v[3],
+          m(3, 0) * v[0] + m(3, 1) * v[1] + m(3, 2) * v[2] + m(3, 3) * v[3]};
+}
+
+template <Mat4 M>
+M operator*(const M& m1, const M& m2) {
+  return m1;
+}
 
 }  // namespace se3

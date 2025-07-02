@@ -3,12 +3,17 @@
 #include "se3/linear_algebra/vectors.hpp"
 
 namespace se3 {
+
+// Generic matrix group
+struct Generic;
+
 namespace generic {
 
 template <std::floating_point T>
 struct Vector3 {
   static constexpr std::size_t SizeAtCompileTime = 3;
   using Scalar = T;
+  using MatrixGroup = Generic;
 
   Vector3() : x(0), y(0), z(0) {}
   Vector3(T x, T y, T z) : x(x), y(y), z(z) {}
@@ -39,6 +44,7 @@ template <std::floating_point T>
 struct Vector4 {
   static constexpr std::size_t SizeAtCompileTime = 4;
   using Scalar = T;
+  using MatrixGroup = Generic;
 
   T& operator[](int i) { return (&x)[i]; }
   const T& operator[](int i) const { return (&x)[i]; }

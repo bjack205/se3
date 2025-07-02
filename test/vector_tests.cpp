@@ -5,17 +5,16 @@
 
 #include <gtest/gtest.h>
 
+#include <Eigen/Dense>
 #include <concepts>
 #include <ranges>
 
-#include <Eigen/Dense>
-
-#include "se3/linear_algebra/simd/vectors_simd.hpp"
+#include "se3/linear_algebra/generic/vectors_generic.hpp"
+#include "se3/linear_algebra/simd/matgroup_simd.hpp"
+#include "se3/linear_algebra/type_traits.hpp"
 #include "se3/linear_algebra/vector_concepts.hpp"
 #include "se3/linear_algebra/vector_ops.hpp"
 #include "se3/linear_algebra/vectors.hpp"
-#include "se3/linear_algebra/type_traits.hpp"
-#include "se3/linear_algebra/generic/vectors_generic.hpp"
 
 namespace se3 {
 
@@ -34,7 +33,6 @@ void testVector3_Concepts() {
 
 template <Vec3 V, std::floating_point T = std::ranges::range_value_t<V>>
 void testVector3_Constructor() {
-
   // Default
   V v0;
   EXPECT_EQ(v0[0], 0.0);
@@ -53,7 +51,7 @@ void testVector3_Constructor() {
   EXPECT_EQ(v2[0], 2.0);
   EXPECT_EQ(v2[1], 3.0);
   EXPECT_EQ(v2[2], 4.0);
-  
+
   // Initializer list assignment
   V v3 = {-1.0, 2.0, -3.0};
   EXPECT_EQ(v3[0], -1.0);
@@ -67,7 +65,7 @@ void testVector3_Constructor() {
   EXPECT_EQ(v4[2], -3.0);
 
   // Subspan
-  V v5 = std::span(vec).template subspan<1,3>();
+  V v5 = std::span(vec).template subspan<1, 3>();
   EXPECT_EQ(v5[0], 3.0);
   EXPECT_EQ(v5[1], 4.0);
   EXPECT_EQ(v5[2], 5.0);
@@ -84,7 +82,6 @@ void testVector3_Constructor() {
   EXPECT_EQ(v7[0], 1.0);
   EXPECT_EQ(v7[1], 2.0);
   EXPECT_EQ(v7[2], 3.0);
-
 }
 
 template <typename V, typename T = typename V::Scalar>
@@ -126,7 +123,7 @@ void testVector3_Initializers() {
   V v3 = Sequence<V, T>(1, 2);
   EXPECT_EQ(v3[0], 1.0);
   EXPECT_EQ(v3[1], 3.0);
-  EXPECT_EQ(v3[2], 5.0); 
+  EXPECT_EQ(v3[2], 5.0);
 
   V v4 = Sequence<V>(T(1), T(-1));
   EXPECT_EQ(v4[0], 1.0);
@@ -327,15 +324,15 @@ void testVector3_Arithmetic() {
 template <typename V, typename T = typename V::Scalar>
 void testVector3_VectorOps() {
   // Test vectors
-  V a{T(1), T(2), T(3)};           // norm = sqrt(14)
-  V b{T(-2), T(1), T(2)};          // norm = 3
-  V ex{T(1), T(0), T(0)};          // unit vector along x-axis
-  V ey{T(0), T(1), T(0)};          // unit vector along y-axis
+  V a{T(1), T(2), T(3)};   // norm = sqrt(14)
+  V b{T(-2), T(1), T(2)};  // norm = 3
+  V ex{T(1), T(0), T(0)};  // unit vector along x-axis
+  V ey{T(0), T(1), T(0)};  // unit vector along y-axis
 
   // Sum
-  EXPECT_EQ(sum(a), T(6));         // 1 + 2 + 3
-  EXPECT_EQ(sum(b), T(1));         // -2 + 1 + 2
-  EXPECT_EQ(sum(ex), T(1));        // 1 + 0 + 0
+  EXPECT_EQ(sum(a), T(6));   // 1 + 2 + 3
+  EXPECT_EQ(sum(b), T(1));   // -2 + 1 + 2
+  EXPECT_EQ(sum(ex), T(1));  // 1 + 0 + 0
 
   // Get machine epsilon for type T
   const T eps = std::numeric_limits<T>::epsilon();
@@ -343,24 +340,26 @@ void testVector3_VectorOps() {
   // Norm and normSquared
   EXPECT_NEAR(normSquared(a), T(14), eps);  // 1^2 + 2^2 + 3^2
   EXPECT_NEAR(norm(a), std::sqrt(T(14)), eps);
-  EXPECT_NEAR(normSquared(b), T(9), eps);   // (-2)^2 + 1^2 + 2^2
+  EXPECT_NEAR(normSquared(b), T(9), eps);  // (-2)^2 + 1^2 + 2^2
   EXPECT_NEAR(norm(b), T(3), eps);
-  EXPECT_NEAR(normSquared(ex), T(1), eps);   // Unit vector
+  EXPECT_NEAR(normSquared(ex), T(1), eps);  // Unit vector
   EXPECT_NEAR(norm(ex), T(1), eps);
 
   // Dot product
   EXPECT_NEAR(dot(a, b), T(-2 + 2 + 6), eps);  // 1*(-2) + 2*1 + 3*2
-  EXPECT_NEAR(dot(ex, ey), T(0), eps);          // Orthogonal unit vectors
-  EXPECT_NEAR(dot(ex, ex), T(1), eps);          // Unit vector self dot
+  EXPECT_NEAR(dot(ex, ey), T(0), eps);         // Orthogonal unit vectors
+  EXPECT_NEAR(dot(ex, ex), T(1), eps);         // Unit vector self dot
 
   // Angle between vectors
-  EXPECT_NEAR(angleBetween(ex, ey), std::numbers::pi_v<T> / T(2), eps);  // 90 degrees
-  EXPECT_NEAR(angleBetween(ex, ex), T(0), eps);                          // Same vector
-  
+  EXPECT_NEAR(angleBetween(ex, ey), std::numbers::pi_v<T> / T(2),
+              eps);                              // 90 degrees
+  EXPECT_NEAR(angleBetween(ex, ex), T(0), eps);  // Same vector
+
   // Test vector normalization
   V a_norm = normalize(a);
   EXPECT_NEAR(norm(a_norm), T(1), eps);
-  EXPECT_NEAR(dot(a, a_norm), norm(a), 2 * eps);  // Original and normalized are parallel
+  EXPECT_NEAR(dot(a, a_norm), norm(a),
+              2 * eps);  // Original and normalized are parallel
 
   // Cross product
   V ez = cross(ex, ey);  // Should be unit vector in z direction
@@ -374,7 +373,7 @@ void testVector3_VectorOps() {
   for (int i = 0; i < 3; ++i) {
     EXPECT_NEAR(cab[i], -cba[i], eps);  // Anti-commutative
   }
-  
+
   // Cross product with self should be zero
   V self_cross = cross(a, a);
   for (int i = 0; i < 3; ++i) {
@@ -404,12 +403,10 @@ TEST(VectorTests, Vector3_Constructor) {
   testVector3_Constructor<Vector3<double>, double>();
 }
 
-
 TEST(VectorTests, Vector3_Initializers) {
   testVector3_Initializers<Vector3<float>>();
   testVector3_Initializers<Vector3<double>>();
 }
-
 
 TEST(VectorTests, Vector3_Setters) {
   testVector3_Setters<Vector3<float>>();
@@ -427,5 +424,19 @@ TEST(VectorTests, Vector3_VectorOps) {
 }
 
 }  // namespace generic
+
+TEST(VectorTests, MatGroups) {
+  EXPECT_TRUE((
+      std::same_as<MatGroup<Generic, double>::Vec3, generic::Vector3<double>>));
+  EXPECT_TRUE((
+      std::same_as<MatGroup<Generic, double>::Vec4, generic::Vector4<double>>));
+
+  EXPECT_FALSE((
+      std::same_as<MatGroup<SIMD, double>::Vec3, generic::Vector3<double>>));
+  EXPECT_TRUE((
+      std::same_as<MatGroup<SIMD, double>::Vec3, simd::Vector3<double>>));
+  EXPECT_TRUE((
+      std::same_as<MatGroup<SIMD, double>::Vec4, generic::Vector4<double>>));
+}
 
 }  // namespace se3

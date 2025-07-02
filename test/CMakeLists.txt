@@ -25,3 +25,5 @@ add_se3_test(quaternion_test SOURCES quaternion_test.cpp LIBRARIES se3::attitude
 add_se3_test(vector_concepts_test SOURCES vector_concepts_test.cpp LIBRARIES se3::attitude Eigen)
 add_se3_test(vector_tests SOURCES vector_tests.cpp LIBRARIES se3::attitude Eigen)
 add_se3_test(matrix_tests SOURCES matrix_tests.cpp LIBRARIES se3::attitude Eigen)
+
+add_executable(scratch scratch.cpp)

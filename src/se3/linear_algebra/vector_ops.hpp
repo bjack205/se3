@@ -48,9 +48,9 @@ V Sequence(T start, T step = T(1)) {
 // Setters
 template <Vec3 V, std::floating_point T = std::ranges::range_value_t<V>>
 void setValues(V& v, const std::tuple<T, T, T>& values) {
-  v[0] = std::get<0>(values);
-  v[1] = std::get<1>(values);
-  v[2] = std::get<2>(values);
+  v.x = std::get<0>(values);
+  v.y = std::get<1>(values);
+  v.z = std::get<2>(values);
 }
 
 template <Vec3 V>
@@ -86,25 +86,25 @@ void setConstant(V& v, T val) {
 // Compound assignment operators for Vec3
 template <Vec3 V>
 V& operator+=(V& x, const V& y) {
-  x[0] += y[0];
-  x[1] += y[1];
-  x[2] += y[2];
+  x.x += y.x;
+  x.y += y.y;
+  x.z += y.z;
   return x;
 }
 
 template <Vec3 V>
 V& operator-=(V& x, const V& y) {
-  x[0] -= y[0];
-  x[1] -= y[1];
-  x[2] -= y[2];
+  x.x -= y.x;
+  x.y -= y.y;
+  x.z -= y.z;
   return x;
 }
 
 template <Vec3 V>
 V& operator*=(V& x, const std::ranges::range_value_t<V>& c) {
-  x[0] *= c;
-  x[1] *= c;
-  x[2] *= c;
+  x.x *= c;
+  x.y *= c;
+  x.z *= c;
   return x;
 }
 

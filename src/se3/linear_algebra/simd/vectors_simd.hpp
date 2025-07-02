@@ -7,8 +7,14 @@
 #include <cstddef>
 
 #include "se3/linear_algebra/vector_concepts.hpp"
+#include "se3/linear_algebra/generic/vectors_generic.hpp"
+
 
 namespace se3 {
+
+// SIMD matrix group
+struct SIMD;
+
 namespace simd {
 
 template <std::floating_point T>
@@ -17,6 +23,8 @@ struct Vector3 {};
 template <>
 struct alignas(32) Vector3<double> {
   using Scalar = double;
+  using MatrixGroup = SIMD;
+
   static constexpr std::size_t SizeAtCompileTime = 3;
 
   union {

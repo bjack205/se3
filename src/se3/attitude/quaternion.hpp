@@ -31,6 +31,7 @@ concept AbstractQuaternion =
 template <std::floating_point T>
 struct Quaternion {
   static constexpr std::size_t SizeAtCompileTime = 4;
+  using MatrixGroup = Generic;
 
   Quaternion() = default;
   Quaternion(T q0, T q1, T q2, T q3) : w{q0}, x{q1}, y{q2}, z{q3} {}
@@ -68,15 +69,6 @@ struct Quaternion {
   T z = 0;
 };
 
-template <AbstractQuaternion Q>
-struct Mat4TypeFor {
-  using type = generic::Matrix4<std::ranges::range_value_t<Q>>;
-};
-
-template <std::floating_point T>
-struct Mat3TypeFor<Quaternion<T>> {
-  using type = generic::Matrix3<T>;
-};
 
 template <Vec3 V>
 struct QuatTypeFor {
