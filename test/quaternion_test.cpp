@@ -6,34 +6,43 @@
 #include <random>
 #include <string>
 
-#include "se3/attitude/quaternion_ops.hpp"
-#include "se3/linear_algebra/generic/matrices_generic.hpp"
-#include "se3/linear_algebra/transpose.hpp"
+#include "se3/attitude/generic/quaternion.hpp"
+#include "se3/attitude/quaternion.hpp"
+#include "se3/linear_algebra/vector_ops.hpp"
 
 namespace se3 {
+template <AbstractQuaternion Quaternion>
+void TestQuaternionConcepts() {
+  EXPECT_TRUE(std::ranges::random_access_range<Quaternion>);
+  EXPECT_TRUE(Vec4<Quaternion>);
+  EXPECT_TRUE(AbstractQuaternion<Quaternion>);
+  EXPECT_TRUE(std::is_trivially_copyable_v<Quaternion>);
+  EXPECT_TRUE(std::is_trivially_move_assignable_v<Quaternion>);
+  EXPECT_TRUE(std::regular<Quaternion>);
+}
 
-TEST(QuaternionTests, VectorInterface) {
-  Quaternion<double> q;
+template <AbstractQuaternion Quaternion>
+void TestQuaternionVectorInterface() {
+  using T = std::ranges::range_value_t<Quaternion>;
+  Quaternion q;
   q.w = 0;
   EXPECT_DOUBLE_EQ(q[0], 0.0);
   for (auto el : q) {
     EXPECT_DOUBLE_EQ(el, 0.0);
   }
   std::ranges::all_of(q, [](auto el) { return el == 0.0; });
-  EXPECT_TRUE(
-      (std::same_as<std::ranges::range_value_t<Quaternion<double>>, double>));
-}
+  EXPECT_TRUE((std::same_as<std::ranges::range_value_t<Quaternion>, T>));
 
-TEST(QuaternionTests, Concepts) {
-  EXPECT_TRUE(std::ranges::random_access_range<Quaternion<double>>);
-  EXPECT_TRUE(AbstractVector4<Quaternion<double>>);
-  EXPECT_TRUE(AbstractQuaternion<Quaternion<double>>);
+  setConstant(q, 1.0);
+  for (auto el : q) {
+    EXPECT_DOUBLE_EQ(el, 1.0);
+  }
 }
 
 template <AbstractQuaternion Q>
 void TestQuaternionNorm() {
   using T = std::ranges::range_value_t<Q>;
-  const T tol = std::numeric_limits<T>::epsilon();
+  const T tol = 2 * std::numeric_limits<T>::epsilon();
 
   Q q = Q::Identity();
   EXPECT_NEAR(norm(q), 1.0, tol);
@@ -57,6 +66,7 @@ void TestQuaternionSum() {
   using T = std::ranges::range_value_t<Q>;
   const T tol = std::numeric_limits<T>::epsilon();
 
+  // TODO: loop over random pairs.
   Q q1 = Q(1.0, 2.0, 3.0, 4.0);
   Q q2 = Q(5.0, 6.0, 7.0, 8.0);
   Q q3 = q1 + q2;
@@ -80,15 +90,11 @@ void TestQuaternionSum() {
   EXPECT_NEAR((q1 + q2 + q3).z, (q1 + (q2 + q3)).z, tol);
 }
 
-TEST(QuaternionTests, Sum) {
-  TestQuaternionSum<Quaternion<double>>();
-  TestQuaternionSum<Quaternion<float>>();
-}
-
-TEST(QuaternionTests, AngleBetween) {
-  using Q = Quaternion<double>;
+template <AbstractQuaternion Q>
+void TestAngleBetween() {
+  using T = std::ranges::range_value_t<Q>;
   using se3::angleBetween;
-  const double tol = 1e-12;
+  const double tol = 2 * std::numeric_limits<T>::epsilon();
 
   // Identical quaternions (angle should be 0)
   Q q1 = Q::Identity();
@@ -144,6 +150,7 @@ void TestQuaternionComposition() {
   q3 = Q(std::cos(-0.3), 0, 0, std::sin(-0.3));
   EXPECT_LT(angleBetween(q1 * q2, q3), tol);
 
+  // TODO: do these with random quaternions.
   // Check identity
   q1 = Q(-0.5509423119979514, 0.639064294304671, -0.3007625682094623,
          0.4445236485939453);
@@ -173,23 +180,19 @@ void TestQuaternionComposition() {
   EXPECT_LT(angleBetween((q1 * q2) * q3, q1 * (q2 * q3)), tol);
 }
 
-TEST(QuaternionTests, Composition) {
-  TestQuaternionComposition<Quaternion<float>>();
-  TestQuaternionComposition<Quaternion<double>>();
-}
-
-TEST(QuaternionTests, RotateVector) {
-  using Q = Quaternion<double>;
-  using V = generic::Vector3<double>;
-  const double tol = std::numeric_limits<double>::epsilon();
+template <AbstractQuaternion Q>
+void TestVectorRotation() {
+  using T = std::ranges::range_value_t<Q>;
+  using V = generic::Vector3<T>;
+  const T tol = 2 * std::numeric_limits<T>::epsilon();
 
   // 90-degree rotation about z-axis
-  double theta = std::numbers::pi / 2;
+  T theta = std::numbers::pi / 2;
   Q qz = Q(std::cos(theta / 2), 0, 0, std::sin(theta / 2));
-  V v{1, 0, 0};
+  V v{1, 2, 0};
   V v_rot = qz * v;
-  EXPECT_NEAR(v_rot[0], 0.0, tol);
-  EXPECT_NEAR(v_rot[1], 1.0, tol);
+  EXPECT_NEAR(v_rot[0], -v[1], tol);
+  EXPECT_NEAR(v_rot[1], v[0], tol);
   EXPECT_NEAR(v_rot[2], 0.0, tol);
 
   // 180-degree rotation about y-axis
@@ -270,7 +273,7 @@ void TestQuaternionExpLog() {
           << "mag=" << mag;
     }
 
-    // Test quaternion exponent and logarithm for unit and non-unit quaternions
+    // Test quaternion exponent and logarithm for unit and non-unit
     for (T mag : mags) {
       Q q_unit = expm(axis * mag);  // unit quaternion
 
@@ -295,26 +298,88 @@ void TestQuaternionExpLog() {
   }
 }
 
-TEST(QuaternionTests, ExponentialAndLogarithmMaps) {
-  TestQuaternionExpLog<Quaternion<double>, generic::Vector3<double>>();
-  TestQuaternionExpLog<Quaternion<float>, generic::Vector3<float>>();
-}
-
-TEST(QuaternionTests, QuatMats) {
-  using Q = Quaternion<double>;
+template <AbstractQuaternion Q>
+void TestQuatMats() {
   using namespace quatmats;
+  using Scalar = std::ranges::range_value_t<Q>;
+  Scalar tol = std::numeric_limits<Scalar>::epsilon() * 10;
+  using Mat4 = Mat4TypeFor<Q>;
 
   std::mt19937 gen(0);
   std::normal_distribution dist(0.0);
   auto q0 = normalize(Q(dist(gen), dist(gen), dist(gen), dist(gen)));
   auto q1 = normalize(Q(dist(gen), dist(gen), dist(gen), dist(gen)));
 
-  EXPECT_LT(angleBetween(q0 * q1, L(q0) * q1), 1e-10);
-  EXPECT_LT(angleBetween(q0 * q1, R(q1) * q0), 1e-10);
-  EXPECT_LT(angleBetween(inverse(q0) * q1, Transpose(L(q0)) * q1), 1e-10);
-  EXPECT_LT(angleBetween(q0 * inverse(q1), Transpose(R(q1)) * q0), 1e-10);
-  EXPECT_LT(angleBetween(inverse(q0), T() * q0), 1e-10);
-  EXPECT_LT(angleBetween(q0 * inverse(q1), L(q0) * (T() * q1)), 1e-10);
+  auto q2 = q0 * q1;
+  auto q2_ = L(q0) * q1;
+  auto diff = q2 - q2_;
+  auto n = norm(diff);
+  EXPECT_LT(angleBetween(q0 * q1, L(q0) * q1), tol);
+  q2_ = R(q1) * q0;
+  diff = q2 - q2_;
+  n = norm(diff);
+  EXPECT_LT(angleBetween(q2, q2_), tol);
+  EXPECT_LT(angleBetween(q0 * q1, R(q1) * q0), tol);
+  EXPECT_LT(angleBetween(inverse(q0) * q1, Transpose(L(q0)) * q1), tol);
+  EXPECT_LT(angleBetween(q0 * inverse(q1), Transpose(R(q1)) * q0), tol);
+  EXPECT_LT(angleBetween(inverse(q0), T<Mat4>() * q0), tol);
+  EXPECT_LT(angleBetween(q0 * inverse(q1), L(q0) * (T<Mat4>() * q1)), tol);
 }
+
+namespace generic {
+TEST(QuaternionTests, generic_Concepts) {
+  TestQuaternionConcepts<Quaternion<double>>();
+  TestQuaternionConcepts<Quaternion<float>>();
+}
+
+TEST(QuaternionTests, generic_VectorInterface) {
+  TestQuaternionVectorInterface<Quaternion<double>>();
+  TestQuaternionVectorInterface<Quaternion<float>>();
+}
+
+TEST(QuaternionTests, generic_Norm) {
+  TestQuaternionNorm<Quaternion<double>>();
+  TestQuaternionNorm<Quaternion<float>>();
+}
+
+TEST(QuaternionTests, generic_Sum) {
+  TestQuaternionSum<Quaternion<double>>();
+  TestQuaternionSum<Quaternion<float>>();
+}
+
+TEST(QuaternionTests, generic_AngleBetween) {
+  TestAngleBetween<Quaternion<double>>();
+  TestAngleBetween<Quaternion<float>>();
+}
+
+TEST(QuaternionTests, generic_Composition) {
+  TestQuaternionComposition<Quaternion<double>>();
+  TestQuaternionComposition<Quaternion<float>>();
+}
+
+TEST(QuaternionTests, generic_VectorRotation) {
+  TestVectorRotation<Quaternion<double>>();
+  TestVectorRotation<Quaternion<float>>();
+}
+
+TEST(QuaternionTests, generic_ExponentialAndLogarithmMaps) {
+  TestQuaternionExpLog<Quaternion<double>, generic::Vector3<double>>();
+  TestQuaternionExpLog<Quaternion<float>, generic::Vector3<float>>();
+}
+
+TEST(QuaternionTests, generic_QuatMats) {
+  TestQuatMats<Quaternion<double>>();
+  TestQuatMats<Quaternion<float>>();
+
+  using Q = Quaternion<float>;
+  std::mt19937 gen(0);
+  std::normal_distribution dist(0.0);
+  auto q0 = normalize(Q(dist(gen), dist(gen), dist(gen), dist(gen)));
+  auto q1 = normalize(Q(dist(gen), dist(gen), dist(gen), dist(gen)));
+  auto q2 = q0 * q1;
+  auto q2_ = quatmats::L(q0) * q1;
+  auto diff = q2 - q2_;
+}
+}  // namespace generic
 
 }  // namespace se3

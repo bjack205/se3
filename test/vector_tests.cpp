@@ -8,6 +8,7 @@
 #include <Eigen/Dense>
 #include <concepts>
 #include <ranges>
+#include <span>
 
 #include "se3/linear_algebra/generic/vectors_generic.hpp"
 #include "se3/linear_algebra/simd/matgroup_simd.hpp"

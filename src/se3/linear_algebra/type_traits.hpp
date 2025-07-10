@@ -1,10 +1,28 @@
 #pragma once
 
-#include "generic/matrices_generic.hpp"
 #include "matrices.hpp"
 #include "vectors.hpp"
 
 namespace se3 {
+
+struct Generic {};
+
+namespace generic {
+template <std::floating_point T>
+struct Vector3;
+
+template <std::floating_point T>
+struct Vector4;
+
+template <std::floating_point T>
+struct Matrix3;
+
+template <std::floating_point T>
+struct Matrix4;
+
+template <std::floating_point T>
+struct DiagonalMatrix3;
+}  // namespace generic
 
 template <typename MatGroupType, std::floating_point T>
 struct MatGroup {
@@ -23,7 +41,8 @@ struct MatGroup {
 };
 
 template <typename V>
-using MatrixGroupFor = MatGroup<typename V::MatrixGroup, std::ranges::range_value_t<V>>;
+using MatrixGroupFor =
+    MatGroup<typename V::MatrixGroup, std::ranges::range_value_t<V>>;
 
 template <typename V>
 using Mat3TypeFor = typename MatrixGroupFor<V>::Mat3;
@@ -32,13 +51,6 @@ template <typename V>
 using Mat4TypeFor = typename MatrixGroupFor<V>::Mat4;
 
 template <typename V>
-struct Vec3TypeFor {
-  // By default, use Vector3 with the same scalar type as the vector
-  using type = generic::Vector3<std::ranges::range_value_t<V>>;
-};
-
-// Helper alias template
-template <typename V>
-using Vec3TypeFor_t = typename Vec3TypeFor<V>::type;
+using Vec3TypeFor = typename MatrixGroupFor<V>::Vec3;
 
 }  // namespace se3

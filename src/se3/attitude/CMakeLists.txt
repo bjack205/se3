@@ -1,4 +1,9 @@
-add_library(se3_attitude INTERFACE quaternion.hpp quaternion_ops.hpp)
+add_library(se3_attitude INTERFACE
+    quaternion.hpp
+    quaternion_ops.hpp
+    rotmat.hpp
+    generic/quaternion.hpp
+    attitude_group.hpp)
 target_link_libraries(se3_attitude INTERFACE se3::linalg)
 target_include_directories(se3_attitude INTERFACE ${PROJECT_SOURCE_DIR}/src)
 target_compile_features(se3_attitude INTERFACE cxx_std_20)

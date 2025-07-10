@@ -9,15 +9,19 @@ constexpr bool kInitializeQuatToIdentity = QUAT_INIT_TO_IDENTITY;
 constexpr bool kInitializeQuatToIdentity = true;
 #endif
 
+#include "se3/attitude/attitude_group.hpp"
 #include "se3/linear_algebra/generic/matrices_generic.hpp"
-#include "se3/linear_algebra/vector_concepts.hpp"
 #include "se3/linear_algebra/type_traits.hpp"
+#include "se3/linear_algebra/vector_concepts.hpp"
+#include "se3/linear_algebra/vector_ops.hpp"
+#include "se3/linear_algebra/matmul.hpp"
 
 namespace se3 {
 
 template <typename Q, typename T = std::ranges::range_value_t<Q>>
 concept AbstractQuaternion =
-    Vec4<Q> and requires(Q q, Q other, T val) {
+    Vec4<Q> and std::is_trivial_v<typename Q::MatrixGroup> and
+    requires(Q q, Q other, T val) {
       { q.w } -> std::convertible_to<T>;
       { q.x } -> std::convertible_to<T>;
       { q.y } -> std::convertible_to<T>;
@@ -29,53 +33,214 @@ concept AbstractQuaternion =
     };
 
 template <std::floating_point T>
-struct Quaternion {
-  static constexpr std::size_t SizeAtCompileTime = 4;
-  using MatrixGroup = Generic;
+constexpr T SmallAngleTolerance() {
+  return 1e-7;
+}
 
-  Quaternion() = default;
-  Quaternion(T q0, T q1, T q2, T q3) : w{q0}, x{q1}, y{q2}, z{q3} {}
+template <>
+constexpr float SmallAngleTolerance<float>() {
+  return 1e-5f;
+}
 
-  explicit Quaternion(const AbstractVector4 auto &vec4)
-      : Quaternion(vec4[0], vec4[1], vec4[2], vec4[3]) {}
+//! Vector part of a quaternion
+template <AbstractQuaternion Q>
+Vec3TypeFor<Q> quatvec(const Q &q) {
+  return {q.x, q.y, q.z};
+}
 
-  static Quaternion Pure(const AbstractVector3 auto &vec3) {
-    return Quaternion(0, vec3[0], vec3[1], vec3[2]);
+template <AbstractQuaternion Q,
+          std::floating_point T = std::ranges::range_value_t<Q>>
+Q conjugate(const Q &q) {
+  return {q.w, -q.x, -q.y, -q.z};
+}
+
+template <AbstractQuaternion Q,
+          std::floating_point T = std::ranges::range_value_t<Q>>
+Q inverse(const Q &q) {
+  return conjugate(q) / normSquared(q);
+}
+
+// Quaternion multiplication
+template <AbstractQuaternion Q,
+          std::floating_point T = std::ranges::range_value_t<Q>>
+Q operator*(const Q &q1, const Q &q2) {
+  // q.w, -q.x, -q.y, -q.z,
+  // q.x, q.w, -q.z, q.y,
+  // q.y, q.z, q.w, -q.x,
+  // q.z, -q.y, q.x, q.w
+  T w = q1.w * q2.w - q1.x * q2.x - q1.y * q2.y - q1.z * q2.z;
+  T x = q1.x * q2.w + q1.w * q2.x - q1.z * q2.y + q1.y * q2.z;
+  T y = q1.y * q2.w + q1.z * q2.x + q1.w * q2.y - q1.x * q2.z;
+  T z = q1.z * q2.w - q1.y * q2.x + q1.x * q2.y + q1.w * q2.z;
+
+  return {w, x, y, z};
+}
+
+template <AbstractQuaternion Q>
+Mat3TypeFor<Q> rotationMatrix(const Q &q) {
+  using T = std::ranges::range_value_t<Q>;
+  T ww = q.w * q.w;
+  T xx = q.x * q.x;
+  T yy = q.y * q.y;
+  T zz = q.z * q.z;
+  T xy = q.x * q.y;
+  T xz = q.x * q.z;
+  T yz = q.y * q.z;
+  T wx = q.w * q.x;
+  T wy = q.w * q.y;
+  T wz = q.w * q.z;
+  // TODO: this depends on active/passive convention and handedness
+  return {ww + xx - yy - zz, 2 * (xy - wz),     2 * (xz + wy),
+          2 * (xy + wz),     ww - xx + yy - zz, 2 * (yz - wx),
+          2 * (xz - xy),     2 * (yz + wx),     ww - xx - yy + zz};
+}
+
+// Rotation of a vector
+template <AbstractQuaternion Q, AbstractVector3 V>
+V operator*(const Q &q, const V &v) {
+  // v_out = q x q(v) x q_c
+  // v_out = R(q)^T L(q) H v
+  // TODO: allow for special case of single-axis rotations
+  return rotationMatrix(q) * v;
+}
+
+template <Vec3 V, AbstractQuaternion Q = QuatTypeFor<V>>
+Q expPure(const V &v) {
+  using T = std::ranges::range_value_t<V>;
+  const T theta2 = normSquared(v);
+  const T theta = std::sqrt(theta2);
+  if (theta <= SmallAngleTolerance<T>()) {
+    const T scale = 1 - theta2 / T(6);
+    return normalize(
+        Q{1 - theta2 * T(0.5), scale * v[0], scale * v[1], scale * v[2]});
+  }
+  const T sin_theta = std::sin(theta);
+  const T cos_theta = std::cos(theta);
+  const T scale = sin_theta / theta;
+  return normalize(Q{cos_theta, scale * v[0], scale * v[1], scale * v[2]});
+}
+
+template <AbstractQuaternion Q>
+Q exp(const Q &q) {
+  Q exp_q_v = expPure(quatvec(q));
+  auto exp_q_w = std::exp(q.w);
+  return exp_q_v * exp_q_w;
+}
+
+template <Vec3 V, AbstractQuaternion Q = QuatTypeFor<V>>
+Q expm(const V &v) {
+  return expPure(v / 2);
+}
+
+template <AbstractQuaternion Q, Vec3 V = Vec3TypeFor<Q>>
+V logUnit(const Q &q) {
+  // NOTE: assumes q is a unit quaternion
+  using T = std::ranges::range_value_t<Q>;
+  V v = quatvec(q);
+  T theta2 = normSquared(v);
+  T theta = std::sqrt(theta2);
+  T scale;
+  if (theta <= SmallAngleTolerance<T>()) {
+    scale = (1 - theta2 / (3 * q.w * q.w)) / q.w;
+  } else {
+    scale = std::atan2(theta, q.w) / theta;
+  }
+  return {v[0] * scale, v[1] * scale, v[2] * scale};
+}
+
+template <AbstractQuaternion Q, Vec3 V = Vec3TypeFor<Q>>
+Q log(const Q &q) {
+  auto q_norm = norm(q);
+  V log_q_unit = logUnit(q / q_norm);
+  auto log_q_norm = std::log(q_norm);
+  return {log_q_norm, log_q_unit[0], log_q_unit[1], log_q_unit[2]};
+}
+
+template <AbstractQuaternion Q, Vec3 V = Vec3TypeFor<Q>>
+V logm(const Q &q) {
+  return 2 * logUnit(normalize(q));
+}
+
+// Computes the angle (in radians) between two unit quaternions
+// The result is always in [0, pi]
+template <AbstractQuaternion Q>
+auto angleBetween(const Q &q1, const Q &q2) {
+  using T = std::ranges::range_value_t<Q>;
+
+  // If the difference between the vectors is small, acos amplifies numerical
+  // rounding errors from the dot product.
+  // We can use a small angle approximation: radius * angle = chord length
+  // where the radius is forced to 1 by normalizing the vectors, and the chord
+  // length is the length of the difference between the unit vectors.
+  T diff = norm(q1 - q2);
+  if (diff < SmallAngleTolerance<T>()) {
+    return diff;
   }
 
-  static Quaternion Identity() { return Quaternion(1, 0, 0, 0); }
+  // Compute the dot product
+  T d = dot(normalize(q1), normalize(q2));
 
-  const T *data() const { return &w; }
-  T *data() { return &w; }
-  [[nodiscard]] std::size_t size() const { return 4; }
+  // Clamp to [-1, 1] to avoid domain errors in acos
+  d = std::clamp(d, T(-1), T(1));
 
-  struct iterator {
-    int8_t index = 0;
-    Quaternion *parent;
-    const T *operator*() const { return parent->operator[](index); }
+  // TODO: use a Taylor series approximation near 1.0
+  // At small angles the dot product is near 1.0 and the floating point error
+  // for single precision results in an angular error of 0.345 mrad
+  T angle =  2 * std::acos(std::abs(d));
+  return angle;
+}
+
+template <AbstractQuaternion Q>
+Q flipQuaternion(const Q &q) {
+  return {-q.w, -q.x, -q.y, -q.z};
+}
+
+template <AbstractQuaternion Q>
+Q flipToPositiveScalar(const Q &q) {
+  using T = std::ranges::range_value_t<Q>;
+  if (std::abs(q.w) < SmallAngleTolerance<T>()) {
+    return q.x > 0 ? q : flipQuaternion(q);
+  }
+  return q.w > 0 ? q : flipQuaternion(q);
+}
+
+namespace quatmats {
+template <AbstractQuaternion Q, Mat4 M = Mat4TypeFor<Q>>
+M L(const Q &q) {
+  // clang-format off
+  return {
+    q.w, -q.x, -q.y, -q.z,
+    q.x, q.w, -q.z, q.y,
+    q.y, q.z, q.w, -q.x,
+    q.z, -q.y, q.x, q.w
   };
+  // clang-format on
+}
 
-  T *begin() { return &w; }
-  T *end() { return &z + 1; }
+template <AbstractQuaternion Q, Mat4 M = Mat4TypeFor<Q>>
+M R(const Q &q) {
+  // clang-format off
+  return {
+    q.w, -q.x, -q.y, -q.z,
+    q.x, q.w, +q.z, -q.y,
+    q.y, -q.z, q.w, +q.x,
+    q.z, +q.y, -q.x, q.w
+  };
+  // clang-format on
+}
 
-  const T &operator[](int i) const { return (&w)[i]; }
-  T &operator[](int i) { return (&w)[i]; }
-
-  auto operator<=>(const Quaternion &other) const = default;
-
-  T w = static_cast<T>(kInitializeQuatToIdentity);
-  T x = 0;
-  T y = 0;
-  T z = 0;
-};
-
-
-template <Vec3 V>
-struct QuatTypeFor {
-  using type = Quaternion<std::ranges::range_value_t<V>>;
-};
-
-template <Vec3 V>
-using QuatTypeFor_t = typename QuatTypeFor<V>::type;
+// TODO: this should be a Diag4
+template <Mat4 M = generic::Matrix4<double>>
+M T() {
+  // clang-format off
+  return {
+    1, 0, 0, 0,
+    0, -1, 0, 0,
+    0, 0, -1, 0,
+    0, 0, 0, -1
+  };
+  // clang-format on
+}
+}  // namespace quatmats
 
 }  // namespace se3

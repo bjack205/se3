@@ -116,6 +116,19 @@ V& operator/=(V& x, const std::ranges::range_value_t<V>& c) {
   return x;
 }
 
+template <Vec4 V, std::floating_point T = std::ranges::range_value_t<V>>
+void setValues(V& v, const std::tuple<T, T, T, T>& values) {
+  v.x = std::get<0>(values);
+  v.y = std::get<1>(values);
+  v.z = std::get<2>(values);
+  v.w = std::get<2>(values);
+}
+
+template <Vec4 V, std::floating_point T>
+void setConstant(V& v, T val) {
+  setValues(v, {val, val, val, val});
+}
+
 // Compound assignment operators for Vec4
 template <Vec4 V>
 V& operator+=(V& x, const V& y) {
@@ -265,7 +278,17 @@ auto dot(const V& x, const V& y) {
 // Angle between two vectors
 template <Vec3or4 V>
 auto angleBetween(const V& x, const V& y) {
-  return std::acos(dot(normalize(x), normalize(y)));
+  using T = std::ranges::range_value_t<V>;
+  V x_normalized = normalize(x);
+  V y_normalized = normalize(y);
+
+  // Use a small-angle approximation when the angle between
+  // the vectors is small, to avoid numerical issues with acos.
+  T diff = norm(x_normalized - y_normalized);
+  if (diff < 100 * std::numeric_limits<T>::epsilon()) {
+    return diff;
+  }
+  return std::acos(dot(x_normalized, y_normalized));
 }
 
 // Cross product

@@ -1,11 +1,9 @@
 #pragma once
 
+#include "se3/linear_algebra/type_traits.hpp"
 #include "se3/linear_algebra/vectors.hpp"
 
 namespace se3 {
-
-// Generic matrix group
-struct Generic;
 
 namespace generic {
 
