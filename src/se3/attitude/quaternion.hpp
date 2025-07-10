@@ -167,11 +167,6 @@ template <AbstractQuaternion Q>
 auto angleBetween(const Q &q1, const Q &q2) {
   using T = std::ranges::range_value_t<Q>;
 
-  // If the difference between the vectors is small, acos amplifies numerical
-  // rounding errors from the dot product.
-  // We can use a small angle approximation: radius * angle = chord length
-  // where the radius is forced to 1 by normalizing the vectors, and the chord
-  // length is the length of the difference between the unit vectors.
   T diff = norm(q1 - q2);
   if (diff < SmallAngleTolerance<T>()) {
     return diff;
@@ -183,9 +178,8 @@ auto angleBetween(const Q &q1, const Q &q2) {
   // Clamp to [-1, 1] to avoid domain errors in acos
   d = std::clamp(d, T(-1), T(1));
 
-  // TODO: use a Taylor series approximation near 1.0
-  // At small angles the dot product is near 1.0 and the floating point error
-  // for single precision results in an angular error of 0.345 mrad
+  // Use absolute value on the dot product to keep the comparison in the same
+  // hemisphere.
   T angle =  2 * std::acos(std::abs(d));
   return angle;
 }

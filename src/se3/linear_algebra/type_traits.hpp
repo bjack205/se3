@@ -53,4 +53,7 @@ using Mat4TypeFor = typename MatrixGroupFor<V>::Mat4;
 template <typename V>
 using Vec3TypeFor = typename MatrixGroupFor<V>::Vec3;
 
+template <typename V>
+using Vec4TypeFor = typename MatrixGroupFor<V>::Vec4;
+
 }  // namespace se3

@@ -282,8 +282,11 @@ auto angleBetween(const V& x, const V& y) {
   V x_normalized = normalize(x);
   V y_normalized = normalize(y);
 
-  // Use a small-angle approximation when the angle between
-  // the vectors is small, to avoid numerical issues with acos.
+  // If the difference between the vectors is small, acos amplifies numerical
+  // rounding errors from the dot product.
+  // We can use a small angle approximation: radius * angle = chord length
+  // where the radius is forced to 1 by normalizing the vectors, and the chord
+  // length is the length of the difference between the unit vectors.
   T diff = norm(x_normalized - y_normalized);
   if (diff < 100 * std::numeric_limits<T>::epsilon()) {
     return diff;
