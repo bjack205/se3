@@ -28,8 +28,6 @@ struct Quaternion : QuaternionBase {
     return Quaternion(vec3[0], vec3[1], vec3[2], 0);
   }
 
-  static Quaternion Identity() { return Quaternion(0, 0, 0, 1); }
-
   const T *data() const { return &w; }
   T *data() { return &w; }
   [[nodiscard]] std::size_t size() const { return 4; }

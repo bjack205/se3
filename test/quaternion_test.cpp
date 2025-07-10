@@ -45,7 +45,7 @@ void TestQuaternionNorm() {
   using T = std::ranges::range_value_t<Q>;
   const T tol = 2 * std::numeric_limits<T>::epsilon();
 
-  Q q = Q::Identity();
+  Q q = identity<Q>();
   EXPECT_NEAR(norm(q), 1.0, tol);
   EXPECT_NEAR(normSquared(q), 1.0, tol);
 
@@ -98,8 +98,8 @@ void TestAngleBetween() {
   const double tol = 2 * std::numeric_limits<T>::epsilon();
 
   // Identical quaternions (angle should be 0)
-  Q q1 = Q::Identity();
-  Q q2 = Q::Identity();
+  Q q1 = identity<Q>();
+  Q q2 = identity<Q>();
   EXPECT_NEAR(angleBetween(q1, q2), 0.0, tol);
 
   // Opposite quaternions
@@ -108,13 +108,13 @@ void TestAngleBetween() {
   // 90 degree rotation about x axis
   double theta = std::numbers::pi / 2;
   q1 = Q(std::sin(theta / 2), 0, 0, std::cos(theta / 2));  // 90 deg
-  q2 = Q::Identity();
+  q2 = identity<Q>();
   EXPECT_NEAR(angleBetween(q1, q2), theta, tol);
 
   // 180 degree rotation about y axis
   theta = std::numbers::pi;
   q1 = Q(0, std::sin(theta / 2), 0, std::cos(theta / 2));  // 180 deg
-  q2 = Q::Identity();
+  q2 = identity<Q>();
   EXPECT_NEAR(angleBetween(q1, q2), theta, tol);
   EXPECT_NEAR(angleBetween(flipQuaternion(q1), q2), theta, tol);
   EXPECT_NEAR(angleBetween(q1, flipQuaternion(q2)), theta, tol);
@@ -154,8 +154,8 @@ void TestQuaternionComposition() {
   // Check identity
   q1 = Q(-0.5509423119979514, 0.639064294304671, -0.3007625682094623,
          0.4445236485939453);
-  EXPECT_LT(angleBetween(q1 * Q::Identity(), q1), tol);
-  EXPECT_LT(angleBetween(Q::Identity() * q1, q1), tol);
+  EXPECT_LT(angleBetween(q1 * identity<Q>(), q1), tol);
+  EXPECT_LT(angleBetween(identity<Q>() * q1, q1), tol);
 
   // Check conjugate
   q1 = Q(1, 2, 3, 0);
@@ -170,8 +170,8 @@ void TestQuaternionComposition() {
 
   // Check multiplication by inverse
   q1 = Q(-1, 1, 2, 3);
-  EXPECT_LT(angleBetween(q1 * inverse(q1), Q::Identity()), tol);
-  EXPECT_LT(angleBetween(inverse(q1) * q1, Q::Identity()), tol);
+  EXPECT_LT(angleBetween(q1 * inverse(q1), identity<Q>()), tol);
+  EXPECT_LT(angleBetween(inverse(q1) * q1, identity<Q>()), tol);
 
   // Check associativity
   q1 = Q(1, 2, 3, 4);
@@ -206,7 +206,7 @@ void TestVectorRotation() {
 
   // Identity rotation
   v = V{1, 2, 3};
-  EXPECT_EQ(Q::Identity() * v, v);
+  EXPECT_EQ(identity<Q>() * v, v);
 
   // Check rotation is the same as q x q(v) x q_c
   // NOTE: this is flipped for passive rotations
@@ -231,12 +231,12 @@ void TestQuaternionExpLog() {
   {
     V v0{0, 0, 0};
     Q q = expm(v0);
-    EXPECT_LT(angleBetween(expm(v0), Q::Identity()), tol);
+    EXPECT_LT(angleBetween(expm(v0), identity<Q>()), tol);
   }
 
   // Logm(identity) == 0
   {
-    V v = logm(Q::Identity());
+    V v = logm(identity<Q>());
     EXPECT_NEAR(v[0], 0.0, tol);
     EXPECT_NEAR(v[1], 0.0, tol);
     EXPECT_NEAR(v[2], 0.0, tol);

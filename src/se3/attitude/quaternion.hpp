@@ -31,7 +31,6 @@ concept AbstractQuaternion = Vec4<Q> and
   { q == other } -> std::convertible_to<bool>;
   { q != other } -> std::convertible_to<bool>;
   { Q(val, val, val, val) } -> std::convertible_to<Q>;
-  Q::Identity();
 };
 
 template <std::floating_point T>
@@ -42,6 +41,11 @@ constexpr T SmallAngleTolerance() {
 template <>
 constexpr float SmallAngleTolerance<float>() {
   return 1e-5f;
+}
+
+template <AbstractQuaternion Q>
+Q identity() {
+  return {0, 0, 0, 1};
 }
 
 //! Vector part of a quaternion
