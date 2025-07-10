@@ -11,26 +11,28 @@ constexpr bool kInitializeQuatToIdentity = true;
 
 #include "se3/attitude/attitude_group.hpp"
 #include "se3/linear_algebra/generic/matrices_generic.hpp"
+#include "se3/linear_algebra/matmul.hpp"
 #include "se3/linear_algebra/type_traits.hpp"
 #include "se3/linear_algebra/vector_concepts.hpp"
 #include "se3/linear_algebra/vector_ops.hpp"
-#include "se3/linear_algebra/matmul.hpp"
 
 namespace se3 {
 
+struct QuaternionBase {};
+
 template <typename Q, typename T = std::ranges::range_value_t<Q>>
-concept AbstractQuaternion =
-    Vec4<Q> and std::is_trivial_v<typename Q::MatrixGroup> and
-    requires(Q q, Q other, T val) {
-      { q.w } -> std::convertible_to<T>;
-      { q.x } -> std::convertible_to<T>;
-      { q.y } -> std::convertible_to<T>;
-      { q.z } -> std::convertible_to<T>;
-      { q == other } -> std::convertible_to<bool>;
-      { q != other } -> std::convertible_to<bool>;
-      { Q(val, val, val, val) } -> std::convertible_to<Q>;
-      Q::Identity();
-    };
+concept AbstractQuaternion = Vec4<Q> and
+    std::is_trivial_v<typename Q::MatrixGroup> and
+    std::is_base_of_v<QuaternionBase, Q> and requires(Q q, Q other, T val) {
+  { q.x } -> std::convertible_to<T>;
+  { q.y } -> std::convertible_to<T>;
+  { q.z } -> std::convertible_to<T>;
+  { q.w } -> std::convertible_to<T>;
+  { q == other } -> std::convertible_to<bool>;
+  { q != other } -> std::convertible_to<bool>;
+  { Q(val, val, val, val) } -> std::convertible_to<Q>;
+  Q::Identity();
+};
 
 template <std::floating_point T>
 constexpr T SmallAngleTolerance() {
@@ -51,7 +53,7 @@ Vec3TypeFor<Q> quatvec(const Q &q) {
 template <AbstractQuaternion Q,
           std::floating_point T = std::ranges::range_value_t<Q>>
 Q conjugate(const Q &q) {
-  return {q.w, -q.x, -q.y, -q.z};
+  return {-q.x, -q.y, -q.z, q.w};
 }
 
 template <AbstractQuaternion Q,
@@ -72,17 +74,16 @@ Q operator*(const Q &q1, const Q &q2) {
   T x = q1.x * q2.w + q1.w * q2.x - q1.z * q2.y + q1.y * q2.z;
   T y = q1.y * q2.w + q1.z * q2.x + q1.w * q2.y - q1.x * q2.z;
   T z = q1.z * q2.w - q1.y * q2.x + q1.x * q2.y + q1.w * q2.z;
-
-  return {w, x, y, z};
+  return {x, y, z, w};
 }
 
 template <AbstractQuaternion Q>
 Mat3TypeFor<Q> rotationMatrix(const Q &q) {
   using T = std::ranges::range_value_t<Q>;
-  T ww = q.w * q.w;
   T xx = q.x * q.x;
   T yy = q.y * q.y;
   T zz = q.z * q.z;
+  T ww = q.w * q.w;
   T xy = q.x * q.y;
   T xz = q.x * q.z;
   T yz = q.y * q.z;
@@ -112,12 +113,12 @@ Q expPure(const V &v) {
   if (theta <= SmallAngleTolerance<T>()) {
     const T scale = 1 - theta2 / T(6);
     return normalize(
-        Q{1 - theta2 * T(0.5), scale * v[0], scale * v[1], scale * v[2]});
+        Q{scale * v[0], scale * v[1], scale * v[2], 1 - theta2 * T(0.5)});
   }
   const T sin_theta = std::sin(theta);
   const T cos_theta = std::cos(theta);
   const T scale = sin_theta / theta;
-  return normalize(Q{cos_theta, scale * v[0], scale * v[1], scale * v[2]});
+  return normalize(Q{scale * v[0], scale * v[1], scale * v[2], cos_theta});
 }
 
 template <AbstractQuaternion Q>
@@ -153,7 +154,7 @@ Q log(const Q &q) {
   auto q_norm = norm(q);
   V log_q_unit = logUnit(q / q_norm);
   auto log_q_norm = std::log(q_norm);
-  return {log_q_norm, log_q_unit[0], log_q_unit[1], log_q_unit[2]};
+  return {log_q_unit[0], log_q_unit[1], log_q_unit[2], log_q_norm};
 }
 
 template <AbstractQuaternion Q, Vec3 V = Vec3TypeFor<Q>>
@@ -180,13 +181,13 @@ auto angleBetween(const Q &q1, const Q &q2) {
 
   // Use absolute value on the dot product to keep the comparison in the same
   // hemisphere.
-  T angle =  2 * std::acos(std::abs(d));
+  T angle = 2 * std::acos(std::abs(d));
   return angle;
 }
 
 template <AbstractQuaternion Q>
 Q flipQuaternion(const Q &q) {
-  return {-q.w, -q.x, -q.y, -q.z};
+  return {-q.x, -q.y, -q.z, -q.w};
 }
 
 template <AbstractQuaternion Q>
@@ -203,10 +204,10 @@ template <AbstractQuaternion Q, Mat4 M = Mat4TypeFor<Q>>
 M L(const Q &q) {
   // clang-format off
   return {
-    q.w, -q.x, -q.y, -q.z,
-    q.x, q.w, -q.z, q.y,
-    q.y, q.z, q.w, -q.x,
-    q.z, -q.y, q.x, q.w
+    q.w, -q.z, q.y, q.x, 
+    q.z, q.w, -q.x, q.y, 
+    -q.y, q.x, q.w, q.z, 
+    -q.x, -q.y, -q.z, q.w 
   };
   // clang-format on
 }
@@ -215,10 +216,10 @@ template <AbstractQuaternion Q, Mat4 M = Mat4TypeFor<Q>>
 M R(const Q &q) {
   // clang-format off
   return {
-    q.w, -q.x, -q.y, -q.z,
-    q.x, q.w, +q.z, -q.y,
-    q.y, -q.z, q.w, +q.x,
-    q.z, +q.y, -q.x, q.w
+    q.w, +q.z, -q.y,  q.x, 
+    -q.z, q.w, +q.x,  q.y, 
+    +q.y, -q.x, q.w,  q.z,
+    -q.x, -q.y, -q.z, q.w 
   };
   // clang-format on
 }
@@ -228,10 +229,10 @@ template <Mat4 M = generic::Matrix4<double>>
 M T() {
   // clang-format off
   return {
-    1, 0, 0, 0,
-    0, -1, 0, 0,
+    -1, 0, 0, 0, 
+    0, -1, 0, 0, 
     0, 0, -1, 0,
-    0, 0, 0, -1
+    0, 0, 0, 1,
   };
   // clang-format on
 }

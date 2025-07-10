@@ -42,14 +42,4 @@ concept AbstractVector3 = AbstractFixedSizeVectorN<V, 3>;
 template <typename V, typename T = std::ranges::range_value_t<V>>
 concept AbstractVector4 = AbstractFixedSizeVectorN<V, 4>;
 
-template <AbstractFixedSizeVector V> auto normSquared(const V &x) {
-  constexpr auto N = SizeAtCompileTime<V>();
-  using T = std::ranges::range_value_t<V>;
-  T n = 0;
-  for (int i = 0; i < N; ++i) {
-    n += x[i] * x[i];
-  }
-  return n;
-}
-
 } // namespace se3

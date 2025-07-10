@@ -3,7 +3,7 @@
 // Copyright (c) 2025. All rights reserved.
 //
 
-#include "../src/se3/linear_algebra/vector_concepts.hpp"
+#include "se3/linear_algebra/vector_concepts.hpp"
 
 #include <gtest/gtest.h>
 
@@ -48,10 +48,4 @@ TEST(VectorConcepts, Vec4) {
   EXPECT_TRUE((AbstractVector4<Eigen::Block<Eigen::VectorXd, 4, 1>>));
   EXPECT_TRUE(AbstractVector4<Eigen::Ref<Eigen::Vector4i>>);
   EXPECT_TRUE(AbstractVector4<Eigen::Diagonal<Eigen::Matrix4d>>);
-}
-
-TEST(VectorConcepts, Norm) {
-  const Eigen::Vector3d x(3,4,5);
-  EXPECT_DOUBLE_EQ(normSquared(x), 50);
-  // EXPECT_DOUBLE_EQ(norm(x), std::sqrt(50));
 }

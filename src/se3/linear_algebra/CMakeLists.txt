@@ -6,5 +6,6 @@ add_library(se3_linalg INTERFACE
     transpose.hpp
     matrix_ops.hpp
     simd/matgroup_simd.hpp
+    arrays/vectors_arrays.hpp
 )
 add_library(se3::linalg ALIAS se3_linalg)

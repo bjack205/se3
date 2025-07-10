@@ -23,10 +23,6 @@ concept Vec3 = AbstractVector3<V> and requires(V v, V other)
   { v.z } -> std::convertible_to<T>;
   { v == other } -> std::convertible_to<bool>;
   { v != other } -> std::convertible_to<bool>;
-  { V::UnitX() } -> std::convertible_to<V>;
-  { V::UnitY() } -> std::convertible_to<V>;
-  { V::UnitZ() } -> std::convertible_to<V>;
-  { V::Zero() } -> std::convertible_to<V>;
 };
 
 template <typename V, typename T = std::ranges::range_value_t<V>>

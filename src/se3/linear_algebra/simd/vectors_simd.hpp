@@ -64,12 +64,6 @@ struct alignas(32) Vector3<double> {
     return (mask & 0x7) == 0x7;  // Only check first 3 elements
   }
   bool operator!=(const Vector3& other) const { return !(*this == other); }
-
-  // Static methods
-  static Vector3 Zero() { return {0, 0, 0}; }
-  static Vector3 UnitX() { return {1, 0, 0}; }
-  static Vector3 UnitY() { return {0, 1, 0}; }
-  static Vector3 UnitZ() { return {0, 0, 1}; }
 };
 
 template <std::floating_point T>

@@ -9,6 +9,7 @@
 #include "se3/attitude/generic/quaternion.hpp"
 #include "se3/attitude/quaternion.hpp"
 #include "se3/linear_algebra/vector_ops.hpp"
+#include "se3/linear_algebra/arrays/vectors_arrays.hpp"
 
 namespace se3 {
 template <AbstractQuaternion Quaternion>
@@ -72,22 +73,22 @@ void TestQuaternionSum() {
   Q q3 = q1 + q2;
 
   // Check sum is correct
-  EXPECT_NEAR(q3.w, 6.0, tol);
-  EXPECT_NEAR(q3.x, 8.0, tol);
-  EXPECT_NEAR(q3.y, 10.0, tol);
-  EXPECT_NEAR(q3.z, 12.0, tol);
+  EXPECT_NEAR(q3.x, 6.0, tol);
+  EXPECT_NEAR(q3.y, 8.0, tol);
+  EXPECT_NEAR(q3.z, 10.0, tol);
+  EXPECT_NEAR(q3.w, 12.0, tol);
 
   // Check sum is commutative
-  EXPECT_NEAR((q1 + q2).w, (q2 + q1).w, tol);
   EXPECT_NEAR((q1 + q2).x, (q2 + q1).x, tol);
   EXPECT_NEAR((q1 + q2).y, (q2 + q1).y, tol);
   EXPECT_NEAR((q1 + q2).z, (q2 + q1).z, tol);
+  EXPECT_NEAR((q1 + q2).w, (q2 + q1).w, tol);
 
   // Check sum is associative
-  EXPECT_NEAR((q1 + q2 + q3).w, (q1 + (q2 + q3)).w, tol);
   EXPECT_NEAR((q1 + q2 + q3).x, (q1 + (q2 + q3)).x, tol);
   EXPECT_NEAR((q1 + q2 + q3).y, (q1 + (q2 + q3)).y, tol);
   EXPECT_NEAR((q1 + q2 + q3).z, (q1 + (q2 + q3)).z, tol);
+  EXPECT_NEAR((q1 + q2 + q3).w, (q1 + (q2 + q3)).w, tol);
 }
 
 template <AbstractQuaternion Q>
@@ -102,18 +103,17 @@ void TestAngleBetween() {
   EXPECT_NEAR(angleBetween(q1, q2), 0.0, tol);
 
   // Opposite quaternions
-  q2 = Q(-1, 0, 0, 0);
-  EXPECT_NEAR(angleBetween(q1, q2), 0.0, tol);
+  EXPECT_NEAR(angleBetween(q1, -q1), 0.0, tol);
 
   // 90 degree rotation about x axis
   double theta = std::numbers::pi / 2;
-  q1 = Q(std::cos(theta / 2), std::sin(theta / 2), 0, 0);  // 90 deg
+  q1 = Q(std::sin(theta / 2), 0, 0, std::cos(theta / 2));  // 90 deg
   q2 = Q::Identity();
   EXPECT_NEAR(angleBetween(q1, q2), theta, tol);
 
   // 180 degree rotation about y axis
   theta = std::numbers::pi;
-  q1 = Q(std::cos(theta / 2), 0, std::sin(theta / 2), 0);  // 180 deg
+  q1 = Q(0, std::sin(theta / 2), 0, std::cos(theta / 2));  // 180 deg
   q2 = Q::Identity();
   EXPECT_NEAR(angleBetween(q1, q2), theta, tol);
   EXPECT_NEAR(angleBetween(flipQuaternion(q1), q2), theta, tol);
@@ -135,19 +135,19 @@ void TestQuaternionComposition() {
   const T tol = std::numeric_limits<T>::epsilon();
 
   // Check rotations along x, y, z add
-  Q q1 = Q(std::cos(0.1), std::sin(0.1), 0, 0);
-  Q q2 = Q(std::cos(0.2), std::sin(0.2), 0, 0);
-  Q q3 = Q(std::cos(0.3), std::sin(0.3), 0, 0);
+  Q q1 = Q(std::sin(0.1), 0, 0, std::cos(0.1));
+  Q q2 = Q(std::sin(0.2), 0, 0, std::cos(0.2));
+  Q q3 = Q(std::sin(0.3), 0, 0, std::cos(0.3));
   EXPECT_LT(angleBetween(q1 * q2, q3), tol);
 
-  q1 = Q(std::cos(0.1), 0, std::sin(0.1), 0);
-  q2 = Q(std::cos(-0.2), 0, std::sin(-0.2), 0);
-  q3 = Q(std::cos(-0.1), 0, std::sin(-0.1), 0);
+  q1 = Q(0, std::sin(0.1), 0, std::cos(0.1));
+  q2 = Q(0, std::sin(-0.2), 0, std::cos(-0.2));
+  q3 = Q(0, std::sin(-0.1), 0, std::cos(-0.1));
   EXPECT_LT(angleBetween(q1 * q2, q3), tol);
 
-  q1 = Q(std::cos(-0.1), 0, 0, std::sin(-0.1));
-  q2 = Q(std::cos(-0.2), 0, 0, std::sin(-0.2));
-  q3 = Q(std::cos(-0.3), 0, 0, std::sin(-0.3));
+  q1 = Q(std::sin(-0.1), 0, 0, std::cos(-0.1));
+  q2 = Q(std::sin(-0.2), 0, 0, std::cos(-0.2));
+  q3 = Q(std::sin(-0.3), 0, 0, std::cos(-0.3));
   EXPECT_LT(angleBetween(q1 * q2, q3), tol);
 
   // TODO: do these with random quaternions.
@@ -158,14 +158,14 @@ void TestQuaternionComposition() {
   EXPECT_LT(angleBetween(Q::Identity() * q1, q1), tol);
 
   // Check conjugate
-  q1 = Q(0, 1, 2, 3);
-  q2 = Q(0, -1, -2, -3);
+  q1 = Q(1, 2, 3, 0);
+  q2 = Q(-1, -2, -3, 0);
   EXPECT_LT(norm(conjugate(q1) - q2), tol);
 
   // Check inverse
-  q1 = Q(-1, 1, 2, 3);
+  q1 = Q(1, 2, 3, -1);
   EXPECT_NEAR(normSquared(q1), 15.0, tol);
-  q2 = Q(-1.0 / 15.0, -1.0 / 15.0, -2.0 / 15.0, -3.0 / 15.0);
+  q2 = Q(-1.0 / 15.0, -2.0 / 15.0, -3.0 / 15.0, -1.0 / 15.0);
   EXPECT_LT(norm(inverse(q1) - q2), tol);
 
   // Check multiplication by inverse
@@ -188,7 +188,7 @@ void TestVectorRotation() {
 
   // 90-degree rotation about z-axis
   T theta = std::numbers::pi / 2;
-  Q qz = Q(std::cos(theta / 2), 0, 0, std::sin(theta / 2));
+  Q qz = Q(0, 0, std::sin(theta / 2), std::cos(theta / 2));
   V v{1, 2, 0};
   V v_rot = qz * v;
   EXPECT_NEAR(v_rot[0], -v[1], tol);
@@ -197,7 +197,7 @@ void TestVectorRotation() {
 
   // 180-degree rotation about y-axis
   theta = std::numbers::pi;
-  Q qy = Q(std::cos(theta / 2), 0, std::sin(theta / 2), 0);
+  Q qy = Q(0, std::sin(theta / 2), 0, std::cos(theta / 2));
   v = V{1, 0, 0};
   v_rot = qy * v;
   EXPECT_NEAR(v_rot[0], -1.0, tol);
@@ -230,6 +230,7 @@ void TestQuaternionExpLog() {
   // Expm(0) == identity quaternion
   {
     V v0{0, 0, 0};
+    Q q = expm(v0);
     EXPECT_LT(angleBetween(expm(v0), Q::Identity()), tol);
   }
 
@@ -381,5 +382,13 @@ TEST(QuaternionTests, generic_QuatMats) {
   auto diff = q2 - q2_;
 }
 }  // namespace generic
+
+
+TEST(ArrayVectors, Test) {
+  static_assert(Vec3<arrays::Vector3<double>>);
+  arrays::Vector3<double> v(3.0, 4.0, 0.0);
+  double n2 = normSquared(v);
+  EXPECT_NEAR(n2, 25, 1e-10);
+}
 
 }  // namespace se3
