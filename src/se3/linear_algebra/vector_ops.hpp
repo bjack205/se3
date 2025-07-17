@@ -10,7 +10,8 @@ namespace se3 {
 // TODO: Make Unit vectors special types
 
 template <Vec3 V, int N>
-requires(N >= 0 && N < 3) V Unit() {
+  requires(N >= 0 && N < 3)
+V Unit() {
   if constexpr (N == 0) {
     return {1, 0, 0};
   } else if constexpr (N == 1) {
@@ -23,7 +24,8 @@ requires(N >= 0 && N < 3) V Unit() {
 }
 
 template <Vec4 V, int N>
-requires(N >= 0 && N < 4) V Unit() {
+  requires(N >= 0 && N < 4)
+V Unit() {
   if constexpr (N == 0) {
     return {1, 0, 0, 0};
   } else if constexpr (N == 1) {
@@ -69,13 +71,14 @@ V Ones() {
 }
 
 template <Vec3 V, std::floating_point T>
-requires(std::same_as<T, std::ranges::range_value_t<V>>) V Constant(T val) {
+  requires(std::same_as<T, std::ranges::range_value_t<V>>)
+V Constant(T val) {
   return {val, val, val};
 }
 
 template <Vec3 V, std::floating_point T>
-requires(std::same_as<T, std::ranges::range_value_t<V>>) V
-    Sequence(T start, T step = T(1)) {
+  requires(std::same_as<T, std::ranges::range_value_t<V>>)
+V Sequence(T start, T step = T(1)) {
   return {start, start + step, start + T(2) * step};
 }
 
@@ -327,8 +330,10 @@ auto normSquared(const V& a) {
 }
 
 template <AbstractFixedSizeVector V>
-requires requires(V v) { v.squaredNorm(); }
-auto normSquared(const V& a) { return a.squaredNorm(); }
+  requires requires(V v) { v.squaredNorm(); }
+auto normSquared(const V& a) {
+  return a.squaredNorm();
+}
 
 auto norm(const AbstractFixedSizeVector auto& a) {
   return std::sqrt(normSquared(a));
