@@ -32,6 +32,18 @@ void testVector3_Concepts() {
   EXPECT_TRUE(std::regular<V>);
 }
 
+template <Vec4 V>
+void testVector4_Concepts() {
+  EXPECT_EQ(SizeAtCompileTime<V>(), 4);
+  EXPECT_TRUE(std::ranges::random_access_range<V>);
+  EXPECT_TRUE(AbstractFixedSizeVector<V>);
+  EXPECT_FALSE(AbstractVector3<V>);
+  EXPECT_TRUE(Vec4<V>);
+  EXPECT_TRUE(Vec3or4<V>);
+  EXPECT_TRUE(std::is_trivially_copyable_v<V>);
+  EXPECT_TRUE(std::regular<V>);
+}
+
 template <Vec3 V, std::floating_point T = std::ranges::range_value_t<V>>
 void testVector3_Constructor() {
   // Default
@@ -85,7 +97,68 @@ void testVector3_Constructor() {
   EXPECT_EQ(v7[2], 3.0);
 }
 
-template <typename V, typename T = typename V::Scalar>
+template <Vec4 V, std::floating_point T = std::ranges::range_value_t<V>>
+void testVector4_Constructor() {
+  // Default
+  V v0;
+  EXPECT_EQ(v0[0], 0.0);
+  EXPECT_EQ(v0[1], 0.0);
+  EXPECT_EQ(v0[2], 0.0);
+  EXPECT_EQ(v0[3], 0.0);
+
+  // Scalar constructor
+  V v1(1.0, 2.0, 3.0, 4.0);
+  EXPECT_EQ(v1[0], 1.0);
+  EXPECT_EQ(v1[1], 2.0);
+  EXPECT_EQ(v1[2], 3.0);
+  EXPECT_EQ(v1[3], 4.0);
+
+  // Span constructor
+  std::vector<T> vec = {2.0, 3.0, 4.0, 5.0, 6.0};
+  V v2{std::span<T, 4>(vec)};
+  EXPECT_EQ(v2[0], 2.0);
+  EXPECT_EQ(v2[1], 3.0);
+  EXPECT_EQ(v2[2], 4.0);
+  EXPECT_EQ(v2[3], 5.0);
+
+  // Initializer list assignment
+  V v3 = {-1.0, 2.0, -3.0, -4.5};
+  EXPECT_EQ(v3[0], -1.0);
+  EXPECT_EQ(v3[1], 2.0);
+  EXPECT_EQ(v3[2], -3.0);
+  EXPECT_EQ(v3[3], -4.5);
+
+  // Initializer list
+  V v4 = {-1.5, -2.5, -3.5, -4.5};
+  EXPECT_EQ(v4[0], -1.5);
+  EXPECT_EQ(v4[1], -2.5);
+  EXPECT_EQ(v4[2], -3.5);
+  EXPECT_EQ(v4[3], -4.5);
+
+  // Subspan
+  V v5 = std::span(vec).template subspan<1, 4>();
+  EXPECT_EQ(v5[0], 3.0);
+  EXPECT_EQ(v5[1], 4.0);
+  EXPECT_EQ(v5[2], 5.0);
+  EXPECT_EQ(v5[3], vec.back());
+
+  // First subspan
+  V v6 = std::span(vec).template first<4>();
+  EXPECT_EQ(v6[0], 2.0);
+  EXPECT_EQ(v6[1], 3.0);
+  EXPECT_EQ(v6[2], 4.0);
+  EXPECT_EQ(v6[3], 5.0);
+
+  // From Eigen
+  Eigen::Vector4<T> eigen_v = {1.0, 2.0, 3.0, 4.0};
+  V v7 = eigen_v;
+  EXPECT_EQ(v7[0], 1.0);  
+  EXPECT_EQ(v7[1], 2.0);
+  EXPECT_EQ(v7[2], 3.0);
+  EXPECT_EQ(v7[3], 4.0);
+}
+
+template <Vec3 V, typename T = typename V::Scalar>
 void testVector3_Initializers() {
   // Unit vectors
   V e0 = UnitX<V>();
@@ -99,6 +172,21 @@ void testVector3_Initializers() {
   EXPECT_EQ(e1[2], 0.0);
 
   V e2 = UnitZ<V>();
+  EXPECT_EQ(e2[0], 0.0);
+  EXPECT_EQ(e2[1], 0.0);
+  EXPECT_EQ(e2[2], 1.0);
+
+  e0 = Unit<V, 0>();
+  EXPECT_EQ(e0[0], 1.0);
+  EXPECT_EQ(e0[1], 0.0);
+  EXPECT_EQ(e0[2], 0.0);
+
+  e1 = Unit<V, 1>();
+  EXPECT_EQ(e1[0], 0.0);
+  EXPECT_EQ(e1[1], 1.0);
+  EXPECT_EQ(e1[2], 0.0);
+
+  e2 = Unit<V, 2>();
   EXPECT_EQ(e2[0], 0.0);
   EXPECT_EQ(e2[1], 0.0);
   EXPECT_EQ(e2[2], 1.0);
@@ -130,9 +218,110 @@ void testVector3_Initializers() {
   EXPECT_EQ(v4[0], 1.0);
   EXPECT_EQ(v4[1], 0.0);
   EXPECT_EQ(v4[2], -1.0);
+
+  V v_rand = rand<V>();
+  for (auto el : v_rand) {
+    EXPECT_GE(el, 0.0);
+    EXPECT_LE(el, 1.0);
+  }
+
+  T sum = 0;
+  int num_samples = 1000;
+  for (int i = 0; i < 1000; ++i) {
+    v_rand = randn<V>();
+    for (auto el : v_rand) {
+      sum += el;
+    }
+  }
+  EXPECT_NEAR(sum / num_samples * 3, 0.0, 1e-2);
 }
 
-template <typename V, typename T = typename V::Scalar>
+template <Vec4 V, typename T = typename V::Scalar>
+void testVector4_Initializers() {
+  // Unit vectors
+  V e0 = UnitX<V>();
+  EXPECT_EQ(e0[0], 1.0);
+  EXPECT_EQ(e0[1], 0.0);
+  EXPECT_EQ(e0[2], 0.0);
+  EXPECT_EQ(e0[3], 0.0);
+
+  V e1 = UnitY<V>();
+  EXPECT_EQ(e1[0], 0.0);
+  EXPECT_EQ(e1[1], 1.0);
+  EXPECT_EQ(e1[2], 0.0);
+  EXPECT_EQ(e1[3], 0.0);
+
+  V e2 = UnitZ<V>();
+  EXPECT_EQ(e2[0], 0.0);
+  EXPECT_EQ(e2[1], 0.0);
+  EXPECT_EQ(e2[2], 1.0);
+  EXPECT_EQ(e2[3], 0.0);
+
+  V e3 = Unit<V, 3>();
+  EXPECT_EQ(e3[0], 0.0);
+  EXPECT_EQ(e3[1], 0.0);
+  EXPECT_EQ(e3[2], 0.0);
+  EXPECT_EQ(e3[3], 1.0);
+
+  e0 = UnitX<V>();
+  EXPECT_EQ(e0[0], 1.0);
+  EXPECT_EQ(e0[1], 0.0);
+  EXPECT_EQ(e0[2], 0.0);
+  EXPECT_EQ(e0[3], 0.0);
+
+  e1 = UnitY<V>();
+  EXPECT_EQ(e1[0], 0.0);
+  EXPECT_EQ(e1[1], 1.0);
+  EXPECT_EQ(e1[2], 0.0);
+  EXPECT_EQ(e1[3], 0.0);
+
+  e2 = UnitZ<V>();
+  EXPECT_EQ(e2[0], 0.0);
+  EXPECT_EQ(e2[1], 0.0);  
+  EXPECT_EQ(e2[2], 1.0);
+  EXPECT_EQ(e2[3], 0.0);
+
+  e3 = Unit<V, 3>();
+  EXPECT_EQ(e3[0], 0.0);
+  EXPECT_EQ(e3[1], 0.0);
+  EXPECT_EQ(e3[2], 0.0);
+  EXPECT_EQ(e3[3], 1.0);
+
+  // Special vectors
+  V v0 = Zero<V>();
+  EXPECT_EQ(v0[0], 0.0);
+  EXPECT_EQ(v0[1], 0.0);
+  EXPECT_EQ(v0[2], 0.0);
+  EXPECT_EQ(v0[3], 0.0);
+
+  V v1 = Ones<V>();
+  EXPECT_EQ(v1[0], 1.0);
+  EXPECT_EQ(v1[1], 1.0);
+  EXPECT_EQ(v1[2], 1.0);
+  EXPECT_EQ(v1[3], 1.0);
+
+  V v2 = Constant<V, T>(2.0);
+  EXPECT_EQ(v2[0], 2.0);
+  EXPECT_EQ(v2[1], 2.0);
+  EXPECT_EQ(v2[2], 2.0);
+  EXPECT_EQ(v2[3], 2.0);
+
+  // Sequences
+  // NOTE: implicit type conversion isn't allowed.
+  V v3 = Sequence<V, T>(1, 2);
+  EXPECT_EQ(v3[0], 1.0);
+  EXPECT_EQ(v3[1], 3.0);
+  EXPECT_EQ(v3[2], 5.0);
+  EXPECT_EQ(v3[3], 7.0);
+
+  V v4 = Sequence<V>(T(1), T(-1));
+  EXPECT_EQ(v4[0], 1.0);
+  EXPECT_EQ(v4[1], 0.0);
+  EXPECT_EQ(v4[2], -1.0);
+  EXPECT_EQ(v4[3], -2.0);
+}
+
+template <Vec3 V, typename T = typename V::Scalar>
 void testVector3_Setters() {
   // Unit vectors
   V v;
@@ -174,7 +363,62 @@ void testVector3_Setters() {
   EXPECT_EQ(v[2], 3.0);
 }
 
-template <typename V, typename T = typename V::Scalar>
+template <Vec4 V, typename T = typename V::Scalar>
+void testVector4_Setters() {
+  // Unit vectors
+  V v;
+  setUnitX(v);
+  EXPECT_EQ(v[0], 1.0);
+  EXPECT_EQ(v[1], 0.0);
+  EXPECT_EQ(v[2], 0.0);
+  EXPECT_EQ(v[3], 0.0);
+
+  setUnitY(v);
+  EXPECT_EQ(v[0], 0.0);
+  EXPECT_EQ(v[1], 1.0);
+  EXPECT_EQ(v[2], 0.0);
+  EXPECT_EQ(v[3], 0.0);
+
+  setUnitZ(v);
+  EXPECT_EQ(v[0], 0.0);
+  EXPECT_EQ(v[1], 0.0);
+  EXPECT_EQ(v[2], 1.0);
+  EXPECT_EQ(v[3], 0.0);
+
+  setUnitW(v);
+  EXPECT_EQ(v[0], 0.0);
+  EXPECT_EQ(v[1], 0.0);
+  EXPECT_EQ(v[2], 0.0);
+  EXPECT_EQ(v[3], 1.0);
+
+  // Special vectors
+  setZero(v);
+  EXPECT_EQ(v[0], 0.0);
+  EXPECT_EQ(v[1], 0.0);
+  EXPECT_EQ(v[2], 0.0);
+  EXPECT_EQ(v[3], 0.0);
+
+  setOnes(v);
+  EXPECT_EQ(v[0], 1.0);
+  EXPECT_EQ(v[1], 1.0);
+  EXPECT_EQ(v[2], 1.0);
+  EXPECT_EQ(v[3], 1.0);
+
+  setConstant(v, T(2.5));
+  EXPECT_EQ(v[0], T(2.5));
+  EXPECT_EQ(v[1], T(2.5));
+  EXPECT_EQ(v[2], T(2.5));
+  EXPECT_EQ(v[3], T(2.5));
+
+  // Direct value setting
+  setValues(v, std::make_tuple(T(1.0), T(2.0), T(3.0), T(4.0)));
+  EXPECT_EQ(v[0], 1.0);
+  EXPECT_EQ(v[1], 2.0);
+  EXPECT_EQ(v[2], 3.0); 
+  EXPECT_EQ(v[3], 4.0);
+}
+
+template <Vec3 V, typename T = typename V::Scalar>
 void testVector3_Arithmetic() {
   // Create test vectors
   V a{T(1), T(2), T(3)};
@@ -422,6 +666,26 @@ TEST(VectorTests, Vector3_Arithmetic) {
 TEST(VectorTests, Vector3_VectorOps) {
   testVector3_VectorOps<Vector3<float>>();
   testVector3_VectorOps<Vector3<double>>();
+}
+
+TEST(VectorTests, Vector4_Concepts) {
+  testVector3_Concepts<Vector3<float>>();
+  testVector3_Concepts<Vector3<double>>();
+}
+
+TEST(VectorTests, Vector4_Constructor) {
+  testVector3_Constructor<Vector3<float>, float>();
+  testVector3_Constructor<Vector3<double>, double>();
+}
+
+TEST(VectorTests, Vector4_Initializers) {
+  testVector3_Initializers<Vector3<float>>();
+  testVector3_Initializers<Vector3<double>>();
+}
+
+TEST(VectorTests, Vector4_Setters) {
+  testVector3_Setters<Vector3<float>>();
+  testVector3_Setters<Vector3<double>>();
 }
 
 }  // namespace generic

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <random>
+
 #include "vector_concepts.hpp"
 #include "vectors.hpp"
 
@@ -7,34 +9,53 @@ namespace se3 {
 
 // TODO: Make Unit vectors special types
 
-// Initialization
-template <Vec3 V>
-V UnitX() {
-  return {1.0, 0.0, 0.0};
-}
-
-template <Vec3 V>
-V UnitY() {
-  return {0.0, 1.0, 0.0};
-}
-
-template <Vec3 V>
-V UnitZ() {
-  return {0.0, 0.0, 1.0};
-}
-
-template <int N, Vec3 V>
-requires(N >= 0 && N < 3)
-V Unit() {
+template <Vec3 V, int N>
+requires(N >= 0 && N < 3) V Unit() {
   if constexpr (N == 0) {
-    return UnitX<V>();
+    return {1, 0, 0};
   } else if constexpr (N == 1) {
-    return UnitY<V>();
+    return {0, 1, 0};
   } else if constexpr (N == 2) {
-    return UnitZ<V>();
+    return {0, 0, 1};
   } else {
-    static_assert(N < 3, "Index out of bounds for Vec3 unit vector");
+    static_assert(N >= 0 && N < 3, "Index out of bounds for Unit vector");
   }
+}
+
+template <Vec4 V, int N>
+requires(N >= 0 && N < 4) V Unit() {
+  if constexpr (N == 0) {
+    return {1, 0, 0, 0};
+  } else if constexpr (N == 1) {
+    return {0, 1, 0, 0};
+  } else if constexpr (N == 2) {
+    return {0, 0, 1, 0};
+  } else if constexpr (N == 3) {
+    return {0, 0, 0, 1};
+  } else {
+    static_assert(N >= 0 && N < 4, "Index out of bounds for Unit vector");
+  }
+}
+
+// Initialization
+template <Vec3or4 V>
+V UnitX() {
+  return Unit<V, 0>();
+}
+
+template <Vec3or4 V>
+V UnitY() {
+  return Unit<V, 1>();
+}
+
+template <Vec3or4 V>
+V UnitZ() {
+  return Unit<V, 2>();
+}
+
+template <Vec4 V>
+V UnitW() {
+  return Unit<V, 3>();
 }
 
 template <Vec3 V>
@@ -48,14 +69,13 @@ V Ones() {
 }
 
 template <Vec3 V, std::floating_point T>
-  requires(std::same_as<T, std::ranges::range_value_t<V>>)
-V Constant(T val) {
+requires(std::same_as<T, std::ranges::range_value_t<V>>) V Constant(T val) {
   return {val, val, val};
 }
 
 template <Vec3 V, std::floating_point T>
-  requires(std::same_as<T, std::ranges::range_value_t<V>>)
-V Sequence(T start, T step = T(1)) {
+requires(std::same_as<T, std::ranges::range_value_t<V>>) V
+    Sequence(T start, T step = T(1)) {
   return {start, start + step, start + T(2) * step};
 }
 
@@ -95,6 +115,42 @@ void setOnes(V& v) {
 template <Vec3 V, std::floating_point T>
 void setConstant(V& v, T val) {
   setValues(v, {val, val, val});
+}
+
+template <Vec3or4 V, int N = SizeAtCompileTime<V>()>
+V rand(std::mt19937& gen) {
+  using T = std::ranges::range_value_t<V>;
+  std::uniform_real_distribution<T> dist(0.0, 1.0);
+  if constexpr (N == 3) {
+    return {dist(gen), dist(gen), dist(gen)};
+  }
+  if constexpr (N == 4) {
+    return {dist(gen), dist(gen), dist(gen), dist(gen)};
+  }
+}
+
+template <Vec3or4 V>
+V rand(int seed = 0) {
+  std::mt19937 mt(seed);
+  return rand<V>(mt);
+}
+
+template <Vec3or4 V, int N = SizeAtCompileTime<V>()>
+V randn(std::mt19937& gen) {
+  using T = std::ranges::range_value_t<V>;
+  std::normal_distribution<T> dist(0.0, 1.0);
+  if constexpr (N == 3) {
+    return {dist(gen), dist(gen), dist(gen)};
+  }
+  if constexpr (N == 4) {
+    return {dist(gen), dist(gen), dist(gen), dist(gen)};
+  }
+}
+
+template <Vec3or4 V>
+V randn(int seed = 0) {
+  std::mt19937 mt(seed);
+  return randn<V>(mt);
 }
 
 // Compound assignment operators for Vec3
@@ -259,7 +315,8 @@ T sum(const V& a) {
 }
 
 // Norm
-template <AbstractFixedSizeVector V> auto normSquared(const V &a) {
+template <AbstractFixedSizeVector V>
+auto normSquared(const V& a) {
   constexpr auto N = SizeAtCompileTime<V>();
   using T = std::ranges::range_value_t<V>;
   T n = 0;
@@ -270,10 +327,8 @@ template <AbstractFixedSizeVector V> auto normSquared(const V &a) {
 }
 
 template <AbstractFixedSizeVector V>
-  requires requires(V v) { v.squaredNorm(); }
-auto normSquared(const V& a) {
-  return a.squaredNorm();
-}
+requires requires(V v) { v.squaredNorm(); }
+auto normSquared(const V& a) { return a.squaredNorm(); }
 
 auto norm(const AbstractFixedSizeVector auto& a) {
   return std::sqrt(normSquared(a));
@@ -322,8 +377,7 @@ auto angleBetween(const V& a, const V& b) {
 // Cross product
 template <Vec3 V>
 V cross(const V& a, const V& b) {
-  return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z,
-          a.x * b.y - a.y * b.x};
+  return {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x};
 }
 
 }  // namespace se3
