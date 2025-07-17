@@ -219,21 +219,29 @@ void testVector3_Initializers() {
   EXPECT_EQ(v4[1], 0.0);
   EXPECT_EQ(v4[2], -1.0);
 
-  V v_rand = rand<V>();
-  for (auto el : v_rand) {
-    EXPECT_GE(el, 0.0);
-    EXPECT_LE(el, 1.0);
-  }
-
-  T sum = 0;
+  // Test uniform distribution is always between 0 and 1
+  std::mt19937 mt;
+  std::set<T> samples;
   int num_samples = 1000;
-  for (int i = 0; i < 1000; ++i) {
-    v_rand = randn<V>();
+  for (int i = 0; i < num_samples; ++i) {
+    V v_rand = rand<V>(mt);
+    for (auto el : v_rand) {
+      EXPECT_GE(el, 0.0);
+      EXPECT_LE(el, 1.0);
+      samples.insert(el);
+    }
+  }
+  EXPECT_EQ(samples.size(), num_samples * 3);
+
+  // Test normal distribution has a mean of 0
+  T sum = 0;
+  for (int i = 0; i < num_samples; ++i) {
+    V v_rand = randn<V>(mt);
     for (auto el : v_rand) {
       sum += el;
     }
   }
-  EXPECT_NEAR(sum / num_samples * 3, 0.0, 1e-2);
+  EXPECT_NEAR(sum / (num_samples * 3), 0.0, 1e-1);
 }
 
 template <Vec4 V, typename T = typename V::Scalar>

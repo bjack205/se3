@@ -121,7 +121,7 @@ void setConstant(V& v, T val) {
 }
 
 template <Vec3or4 V, int N = SizeAtCompileTime<V>()>
-V rand(std::mt19937& gen) {
+V rand(std::uniform_random_bit_generator auto& gen) {
   using T = std::ranges::range_value_t<V>;
   std::uniform_real_distribution<T> dist(0.0, 1.0);
   if constexpr (N == 3) {
@@ -132,14 +132,8 @@ V rand(std::mt19937& gen) {
   }
 }
 
-template <Vec3or4 V>
-V rand(int seed = 0) {
-  std::mt19937 mt(seed);
-  return rand<V>(mt);
-}
-
 template <Vec3or4 V, int N = SizeAtCompileTime<V>()>
-V randn(std::mt19937& gen) {
+V randn(std::uniform_random_bit_generator auto& gen) {
   using T = std::ranges::range_value_t<V>;
   std::normal_distribution<T> dist(0.0, 1.0);
   if constexpr (N == 3) {
@@ -148,12 +142,6 @@ V randn(std::mt19937& gen) {
   if constexpr (N == 4) {
     return {dist(gen), dist(gen), dist(gen), dist(gen)};
   }
-}
-
-template <Vec3or4 V>
-V randn(int seed = 0) {
-  std::mt19937 mt(seed);
-  return randn<V>(mt);
 }
 
 // Compound assignment operators for Vec3
