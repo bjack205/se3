@@ -64,4 +64,6 @@ Transpose(U&&) -> Transpose<U>;
 // TODO: need a method for creating a transposed copy.
 // TODO: specialize matrix-transpose multiplication.
 
+
+
 }  // namespace se3

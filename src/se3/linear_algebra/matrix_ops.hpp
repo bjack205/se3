@@ -28,6 +28,14 @@ M operator+(const M& m1, const M& m2) {
           m1(2, 0) + m2(2, 0), m1(2, 1) + m2(2, 1), m1(2, 2) + m2(2, 2)};
 }
 
+// A - B
+template <Mat3 M>
+M operator-(const M& m1, const M& m2) {
+  return {m1(0, 0) - m2(0, 0), m1(0, 1) - m2(0, 1), m1(0, 2) - m2(0, 2),
+          m1(1, 0) - m2(1, 0), m1(1, 1) - m2(1, 1), m1(1, 2) - m2(1, 2),
+          m1(2, 0) - m2(2, 0), m1(2, 1) - m2(2, 1), m1(2, 2) - m2(2, 2)};
+}
+
 // A + I
 template <Mat3 M, std::floating_point T = std::ranges::range_value_t<M>>
 M operator+(const M& m, const UniformScaling<T>& I) {
@@ -36,6 +44,12 @@ M operator+(const M& m, const UniformScaling<T>& I) {
     m(1, 0), m(1, 1) + I.value, m(1, 2),
     m(2, 0), m(2, 1), m(2, 2) + I.value
   };
+}
+
+// A - I
+template <Mat3 M, std::floating_point T = std::ranges::range_value_t<M>>
+M operator-(const M& m, const UniformScaling<T>& I) {
+  return m + UniformScaling<T>(-I.value);
 }
 
 // A += B

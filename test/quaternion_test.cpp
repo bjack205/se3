@@ -8,8 +8,9 @@
 
 #include "se3/attitude/generic/quaternion.hpp"
 #include "se3/attitude/quaternion.hpp"
-#include "se3/linear_algebra/vector_ops.hpp"
 #include "se3/linear_algebra/arrays/vectors_arrays.hpp"
+#include "se3/linear_algebra/matrix_ops.hpp"
+#include "se3/linear_algebra/vector_ops.hpp"
 
 namespace se3 {
 template <AbstractQuaternion Quaternion>
@@ -300,31 +301,90 @@ void TestQuaternionExpLog() {
 }
 
 template <AbstractQuaternion Q>
+void TestRotationMatrix() {
+  using Mat3 = MatrixGroupFor<Q>::Mat3;
+  using Vec3 = MatrixGroupFor<Q>::Vec3;
+  using Scalar = std::ranges::range_value_t<Q>;
+  Scalar tol = std::numeric_limits<Scalar>::epsilon() * 10;
+
+  auto check_orthogonality = [tol](const auto& m) {
+    EXPECT_LT(norm(transpose(m) * m - UniformScaling<Scalar>()), tol);
+    EXPECT_NEAR(determinant(m), 1, tol);
+  };
+  auto q1 = Q(std::sin(0.1), 0, 0, std::cos(0.1));
+  auto q2 = Q(0, std::sin(-0.2), 0, std::cos(-0.2));
+  auto q3 = Q(0, 0, std::sin(-0.1), std::cos(-0.1));
+
+  Vec3 v1{1, 2, 3};
+  Mat3 m1 = rotationMatrix(q1);
+  check_orthogonality(m1);
+  EXPECT_LT(norm(m1 * v1 - q1 * v1), tol);
+  EXPECT_LT(norm(Transpose(m1) * v1 - inverse(q1) * v1), tol);
+
+  Mat3 m2 = rotationMatrix(q2);
+  check_orthogonality(m2);
+  EXPECT_LT(norm(m2 * v1 - q2 * v1), tol);
+  EXPECT_LT(norm(Transpose(m2) * v1 - inverse(q2) * v1), tol);
+
+  Mat3 m3 = rotationMatrix(q3);
+  check_orthogonality(m3);
+  EXPECT_LT(norm(m3 * v1 - q3 * v1), tol);
+  EXPECT_LT(norm(Transpose(m3) * v1 - inverse(q3) * v1), tol);
+}
+
+template <AbstractQuaternion Q>
 void TestQuatMats() {
   using namespace quatmats;
   using Scalar = std::ranges::range_value_t<Q>;
   Scalar tol = std::numeric_limits<Scalar>::epsilon() * 10;
-  using Mat4 = Mat4TypeFor<Q>;
+  using Mat4 = MatrixGroupFor<Q>::Mat4;
 
   std::mt19937 gen(0);
   std::normal_distribution dist(0.0);
   auto q0 = normalize(Q(dist(gen), dist(gen), dist(gen), dist(gen)));
   auto q1 = normalize(Q(dist(gen), dist(gen), dist(gen), dist(gen)));
 
-  auto q2 = q0 * q1;
-  auto q2_ = L(q0) * q1;
-  auto diff = q2 - q2_;
-  auto n = norm(diff);
   EXPECT_LT(angleBetween(q0 * q1, L(q0) * q1), tol);
-  q2_ = R(q1) * q0;
-  diff = q2 - q2_;
-  n = norm(diff);
-  EXPECT_LT(angleBetween(q2, q2_), tol);
   EXPECT_LT(angleBetween(q0 * q1, R(q1) * q0), tol);
   EXPECT_LT(angleBetween(inverse(q0) * q1, Transpose(L(q0)) * q1), tol);
   EXPECT_LT(angleBetween(q0 * inverse(q1), Transpose(R(q1)) * q0), tol);
   EXPECT_LT(angleBetween(inverse(q0), T<Mat4>() * q0), tol);
   EXPECT_LT(angleBetween(q0 * inverse(q1), L(q0) * (T<Mat4>() * q1)), tol);
+}
+
+template <AbstractQuaternion Q>
+void TestInitializers() {
+  using T = std::ranges::range_value_t<Q>;
+  const T tol = std::numeric_limits<T>::epsilon();
+
+  std::mt19937 gen(0);
+  std::uniform_real_distribution<T> dist;
+  for (int i = 0; i < 100; ++i) {
+    Q q_rand = randomRotation<Q>(gen);
+    EXPECT_NEAR(norm(q_rand), 1.0, tol);
+
+    T angle = dist(gen) * 2 * std::numbers::pi;
+    Q qx = rotX<Q>(angle);
+    EXPECT_NEAR(norm(qx), 1.0, tol);
+    EXPECT_NEAR(qx.x, std::sin(angle / 2), tol);
+    EXPECT_NEAR(qx.y, 0.0, tol);
+    EXPECT_NEAR(qx.z, 0.0, tol);
+    EXPECT_NEAR(qx.w, std::cos(angle / 2), tol);
+
+    Q qy = rotY<Q>(angle);
+    EXPECT_NEAR(norm(qy), 1.0, tol);
+    EXPECT_NEAR(qy.x, 0.0, tol);
+    EXPECT_NEAR(qy.y, std::sin(angle / 2), tol);
+    EXPECT_NEAR(qy.z, 0.0, tol);
+    EXPECT_NEAR(qy.w, std::cos(angle / 2), tol);
+
+    Q qz = rotZ<Q>(angle);
+    EXPECT_NEAR(norm(qz), 1.0, tol);
+    EXPECT_NEAR(qz.x, 0.0, tol);
+    EXPECT_NEAR(qz.y, 0.0, tol);
+    EXPECT_NEAR(qz.z, std::sin(angle / 2), tol);
+    EXPECT_NEAR(qz.w, std::cos(angle / 2), tol);
+  }
 }
 
 namespace generic {
@@ -364,8 +424,13 @@ TEST(QuaternionTests, generic_VectorRotation) {
 }
 
 TEST(QuaternionTests, generic_ExponentialAndLogarithmMaps) {
-  TestQuaternionExpLog<Quaternion<double>, generic::Vector3<double>>();
-  TestQuaternionExpLog<Quaternion<float>, generic::Vector3<float>>();
+  TestQuaternionExpLog<Quaternion<double>, Vector3<double>>();
+  TestQuaternionExpLog<Quaternion<float>, Vector3<float>>();
+}
+
+TEST(QuaternionTests, generic_RotationMatrix) {
+  TestRotationMatrix<Quaternion<double>>();
+  TestRotationMatrix<Quaternion<float>>();
 }
 
 TEST(QuaternionTests, generic_QuatMats) {
@@ -381,8 +446,12 @@ TEST(QuaternionTests, generic_QuatMats) {
   auto q2_ = quatmats::L(q0) * q1;
   auto diff = q2 - q2_;
 }
-}  // namespace generic
 
+TEST(QuaternionTests, generic_Initializers) {
+  TestInitializers<Quaternion<double>>();
+  TestInitializers<Quaternion<float>>();
+}
+}  // namespace generic
 
 TEST(ArrayVectors, Test) {
   static_assert(Vec3<arrays::Vector3<double>>);

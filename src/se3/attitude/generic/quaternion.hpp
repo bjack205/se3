@@ -14,7 +14,8 @@ namespace se3 {
 namespace generic {
 
 template <std::floating_point T>
-struct Quaternion : QuaternionBase {
+struct Quaternion {
+  static constexpr bool IsQuaternion = true;
   static constexpr std::size_t SizeAtCompileTime = 4;
   using MatrixGroup = Generic;
 

@@ -18,20 +18,20 @@ constexpr bool kInitializeQuatToIdentity = true;
 
 namespace se3 {
 
-struct QuaternionBase {};
-
 template <typename Q, typename T = std::ranges::range_value_t<Q>>
-concept AbstractQuaternion = Vec4<Q> and
-    std::is_trivial_v<typename Q::MatrixGroup> and
-    std::is_base_of_v<QuaternionBase, Q> and requires(Q q, Q other, T val) {
-  { q.x } -> std::convertible_to<T>;
-  { q.y } -> std::convertible_to<T>;
-  { q.z } -> std::convertible_to<T>;
-  { q.w } -> std::convertible_to<T>;
-  { q == other } -> std::convertible_to<bool>;
-  { q != other } -> std::convertible_to<bool>;
-  { Q(val, val, val, val) } -> std::convertible_to<Q>;
-};
+concept AbstractQuaternion = Vec4<Q> and Q::IsQuaternion and
+                             std::is_trivial_v<typename Q::MatrixGroup> and
+                             requires(Q q, Q other, T val) {
+                               { q.x } -> std::convertible_to<T>;
+                               { q.y } -> std::convertible_to<T>;
+                               { q.z } -> std::convertible_to<T>;
+                               { q.w } -> std::convertible_to<T>;
+                               { q == other } -> std::convertible_to<bool>;
+                               { q != other } -> std::convertible_to<bool>;
+                               {
+                                 Q(val, val, val, val)
+                               } -> std::convertible_to<Q>;
+                             };
 
 template <std::floating_point T>
 constexpr T SmallAngleTolerance() {
@@ -46,6 +46,37 @@ constexpr float SmallAngleTolerance<float>() {
 template <AbstractQuaternion Q>
 Q identity() {
   return {0, 0, 0, 1};
+}
+
+template <AbstractQuaternion Q>
+Q randomRotation(std::uniform_random_bit_generator auto &gen) {
+  using T = std::ranges::range_value_t<Q>;
+  std::normal_distribution<T> dist(0.0, 1.0);
+  return normalize(Q{dist(gen), dist(gen), dist(gen), dist(gen)});
+}
+
+template <AbstractQuaternion Q,
+          std::floating_point T = std::ranges::range_value_t<Q>>
+Q rotX(T angle) {
+  T c = std::cos(angle / 2);
+  T s = std::sin(angle / 2);
+  return {s, 0, 0, c};
+}
+
+template <AbstractQuaternion Q,
+          std::floating_point T = std::ranges::range_value_t<Q>>
+Q rotY(T angle) {
+  T c = std::cos(angle / 2);
+  T s = std::sin(angle / 2);
+  return {0, s, 0, c};
+}
+
+template <AbstractQuaternion Q,
+          std::floating_point T = std::ranges::range_value_t<Q>>
+Q rotZ(T angle) {
+  T c = std::cos(angle / 2);
+  T s = std::sin(angle / 2);
+  return {0, 0, s, c};
 }
 
 //! Vector part of a quaternion
@@ -97,7 +128,7 @@ Mat3TypeFor<Q> rotationMatrix(const Q &q) {
   // TODO: this depends on active/passive convention and handedness
   return {ww + xx - yy - zz, 2 * (xy - wz),     2 * (xz + wy),
           2 * (xy + wz),     ww - xx + yy - zz, 2 * (yz - wx),
-          2 * (xz - xy),     2 * (yz + wx),     ww - xx - yy + zz};
+          2 * (xz - wy),     2 * (yz + wx),     ww - xx - yy + zz};
 }
 
 // Rotation of a vector

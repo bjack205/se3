@@ -10,10 +10,7 @@
 
 namespace se3 {
 
-// template <typename M, typename T = std::ranges::range_value_t<M>>
-// concept AbstractMRP = std::ranges::range<M> and Vec3<M> and requires (const M& p)
-// {
-//
-// };
+template <typename M, typename T = std::ranges::range_value_t<M>>
+concept AbstractMRP = std::ranges::range<M> and Vec3<M> and M::IsMRP and std::regular<M>;
 
 }

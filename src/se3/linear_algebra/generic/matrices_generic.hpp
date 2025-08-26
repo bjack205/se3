@@ -24,15 +24,15 @@ struct Matrix3 {
         m21(0),
         m22(1) {}
 
-  Matrix3(T m00, T m10, T m20, T m01, T m11, T m21, T m02, T m12, T m22)
+  Matrix3(T m00, T m01, T m02, T m10, T m11, T m12, T m20, T m21, T m22)
       : m00(m00),
-        m01(m10),
-        m02(m20),
-        m10(m01),
+        m01(m01),
+        m02(m02),
+        m10(m10),
         m11(m11),
-        m12(m21),
-        m20(m02),
-        m21(m12),
+        m12(m12),
+        m20(m20),
+        m21(m21),
         m22(m22) {}
 
   static Matrix3 identity() { return {1, 0, 0, 0, 1, 0, 0, 0, 1}; }
