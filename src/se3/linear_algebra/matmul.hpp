@@ -17,6 +17,14 @@ V operator*(const M& m, const V& v) {
           m(2, 0) * v[0] + m(2, 1) * v[1] + m(2, 2) * v[2]};
 }
 
+template <Mat3 M, Vec3 V>
+V operator*(const Transpose<M>& m_t, const V& v) {
+  const M& m = m_t.parent;
+  return {m(0, 0) * v[0] + m(1, 0) * v[1] + m(2, 0) * v[2],
+          m(0, 1) * v[0] + m(1, 1) * v[1] + m(2, 1) * v[2],
+          m(0, 2) * v[0] + m(1, 2) * v[1] + m(2, 2) * v[2]};
+}
+
 template <Diag3 D, Vec3 V>
 V operator*(const D& d, const V& v) {
   return {d[0] * v[0], d[1] * v[1], d[2] * v[2]};
@@ -52,6 +60,37 @@ M operator*(const M& m1, const M& m2) {
           m1(2, 0) * m2(0, 0) + m1(2, 1) * m2(1, 0) + m1(2, 2) * m2(2, 0),
           m1(2, 0) * m2(0, 1) + m1(2, 1) * m2(1, 1) + m1(2, 2) * m2(2, 1),
           m1(2, 0) * m2(0, 2) + m1(2, 1) * m2(1, 2) + m1(2, 2) * m2(2, 2)};
+}
+
+// A'B
+template <Mat3 M>
+M operator*(const Transpose<M>& m1_t, const M& m2) {
+  const M& m1 = m1_t.parent;
+  return {m1(0, 0) * m2(0, 0) + m1(1, 0) * m2(1, 0) + m1(2, 0) * m2(2, 0),
+          m1(0, 0) * m2(0, 1) + m1(1, 0) * m2(1, 1) + m1(2, 0) * m2(2, 1),
+          m1(0, 0) * m2(0, 2) + m1(1, 0) * m2(1, 2) + m1(2, 0) * m2(2, 2),
+          m1(0, 1) * m2(0, 0) + m1(1, 1) * m2(1, 0) + m1(2, 1) * m2(2, 0),
+          m1(0, 1) * m2(0, 1) + m1(1, 1) * m2(1, 1) + m1(2, 1) * m2(2, 1),
+          m1(0, 1) * m2(0, 2) + m1(1, 1) * m2(1, 2) + m1(2, 1) * m2(2, 2),
+          m1(0, 2) * m2(0, 0) + m1(1, 2) * m2(1, 0) + m1(2, 2) * m2(2, 0),
+          m1(0, 2) * m2(0, 1) + m1(1, 2) * m2(1, 1) + m1(2, 2) * m2(2, 1),
+          m1(0, 2) * m2(0, 2) + m1(1, 2) * m2(1, 2) + m1(2, 2) * m2(2, 2)};
+}
+
+// A'B'
+template <Mat3 M>
+M operator*(const Transpose<M>& m1_t, const Transpose<M>& m2_t) {
+  const M& m1 = m1_t.parent;
+  const M& m2 = m2_t.parent;
+  return {m1(0, 0) * m2(0, 0) + m1(1, 0) * m2(1, 0) + m1(2, 0) * m2(2, 0),
+          m1(0, 0) * m2(0, 1) + m1(1, 0) * m2(1, 1) + m1(2, 0) * m2(2, 1),
+          m1(0, 0) * m2(0, 2) + m1(1, 0) * m2(1, 2) + m1(2, 0) * m2(2, 2),
+          m1(0, 1) * m2(0, 0) + m1(1, 1) * m2(1, 0) + m1(2, 1) * m2(2, 0),
+          m1(0, 1) * m2(0, 1) + m1(1, 1) * m2(1, 1) + m1(2, 1) * m2(2, 1),
+          m1(0, 1) * m2(0, 2) + m1(1, 1) * m2(1, 2) + m1(2, 1) * m2(2, 2),
+          m1(0, 2) * m2(0, 0) + m1(1, 2) * m2(1, 0) + m1(2, 2) * m2(2, 0),
+          m1(0, 2) * m2(0, 1) + m1(1, 2) * m2(1, 1) + m1(2, 2) * m2(2, 1),
+          m1(0, 2) * m2(0, 2) + m1(1, 2) * m2(1, 2) + m1(2, 2) * m2(2, 2)};
 }
 
 // The following methods default to returning a Matrix3. Need to make sure this

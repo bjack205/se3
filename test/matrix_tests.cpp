@@ -2,6 +2,7 @@
 
 #include "se3/linear_algebra/generic/matrices_generic.hpp"
 #include "se3/linear_algebra/matmul.hpp"
+#include "se3/linear_algebra/matrix_ops.hpp"
 
 namespace se3 {
 namespace generic {
@@ -36,6 +37,72 @@ TEST(MatrixTest, Mat3_Indexing) {
   for (auto x : m) {
     EXPECT_EQ(x, i++);
   }
+}
+
+template <Mat3 M>
+void TestMatrixArithmetic() {
+  using T = std::ranges::range_value_t<M>;
+  using I = UniformScaling<T>;
+
+  // Add uniform scaling
+  M A(1, 2, 3, 4, 5, 6, 7, 8, 9);
+  M AI = A + I();
+  M AI_expected(2, 2, 3, 4, 6, 6, 7, 8, 10);
+  EXPECT_EQ(AI, AI_expected);
+
+  // Add uniform scaling with value
+  M A2(1, 2, 3, 4, 5, 6, 7, 8, 9);
+  T value = 10.0;
+  M AI2 = A2 + I(value);
+  M AI2_expected(11, 2, 3, 4, 15, 6, 7, 8, 19);
+  EXPECT_EQ(AI2, AI2_expected);
+
+  // Add two matrices
+  M B(9, 8, 7, 6, 5, 4, 3, 2, 1);
+  M C = A + B;
+  M C_expected(10, 10, 10, 10, 10, 10, 10, 10, 10);
+  EXPECT_EQ(C, C_expected);
+}
+
+TEST(MatrixTests, Matrix3_Arithmetic) {
+  TestMatrixArithmetic<Matrix3<float>>();
+  TestMatrixArithmetic<Matrix3<double>>();
+}
+
+template <Mat3 M, Vec3 V>
+void TestMatrixMultiplication() {
+  using T = std::ranges::range_value_t<M>;
+  using I = UniformScaling<T>;
+  const T eps = std::numeric_limits<T>::epsilon();
+  M A(1, 2, 3, 4, 5, 6, 7, 8, 9);
+  V x(1, 2, 3);
+  M At(1, 4, 7, 2, 5, 8, 3, 6, 9);
+
+  auto Ax = A * x;
+  EXPECT_EQ(Ax.x, 14);
+  EXPECT_EQ(Ax.y, 32);
+  EXPECT_EQ(Ax.z, 50);
+
+  auto Atx = At * x;
+  EXPECT_EQ(Atx.x, 30);
+  EXPECT_EQ(Atx.y, 36);
+  EXPECT_EQ(Atx.z, 42);
+
+  EXPECT_EQ(At * x, Transpose(A) * x);
+  EXPECT_EQ(At * x, transpose(A) * x);
+
+  A = A + I(10.0);
+  T detA = determinant(A);
+  EXPECT_NEAR(detA, 2320.0, eps);
+
+  // A * inv(A)
+  auto AAinv = A * inverse(A);
+  EXPECT_EQ(A * inverse(A), M(I()));
+}
+
+TEST(MatrixTests, Matrix3_Multiplication) {
+  TestMatrixMultiplication<Matrix3<float>, Vector3<float>>();
+  TestMatrixMultiplication<Matrix3<double>, Vector3<double>>();
 }
 
 TEST(MatrixTest, Mat3_Vec3) {

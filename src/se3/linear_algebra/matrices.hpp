@@ -23,7 +23,6 @@ concept Mat3 = FixedSizedMat<M, 3, 3> and requires(M m, M other) {
   { m(2, 2) } -> std::convertible_to<T>;
   { m == other } -> std::convertible_to<bool>;
   { m != other } -> std::convertible_to<bool>;
-  { M::identity() } -> std::convertible_to<M>;
 };
 
 template <typename M, typename T = std::ranges::range_value_t<M>>
@@ -47,7 +46,6 @@ concept Mat4 = FixedSizedMat<M, 4, 4> and requires(M m, M other) {
   { m(3, 3) } -> std::convertible_to<T>;
   { m == other } -> std::convertible_to<bool>;
   { m != other } -> std::convertible_to<bool>;
-  // { M::identity() } -> std::convertible_to<M>;
 };
 
 template <typename M, typename T = std::ranges::range_value_t<M>>
@@ -111,5 +109,16 @@ concept UTri3 = FixedSizedMat<M, 3, 3> and requires(M m) {
 };
 
 // TODO: Uniform scaling
+template <std::floating_point T>
+struct UniformScaling {
+  T value = 1;
+
+  template <Mat3 M>
+  operator M() const {
+    return {value, 0, 0, 0, value, 0, 0, 0, value};
+  }
+};
+
+// Convert UniformScaling to a dense matrix
 
 }  // namespace se3
