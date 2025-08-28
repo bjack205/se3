@@ -120,6 +120,11 @@ void setConstant(V& v, T val) {
   setValues(v, {val, val, val});
 }
 
+template <Vec3 V, std::floating_point T>
+void setSequence(V& v, T start, T step = T(1)) {
+  setValues(v, {start, start + step, start + T(2) * step});
+}
+
 template <Vec3or4 V, int N = SizeAtCompileTime<V>()>
 V rand(std::uniform_random_bit_generator auto& gen) {
   using T = std::ranges::range_value_t<V>;
@@ -325,6 +330,24 @@ auto normSquared(const V& a) {
 
 auto norm(const AbstractFixedSizeVector auto& a) {
   return std::sqrt(normSquared(a));
+}
+
+auto normInf(const AbstractFixedSizeVector auto& a) {
+  using T = std::ranges::range_value_t<decltype(a)>;
+  T n = 0;
+  for (int i = 0; i < SizeAtCompileTime<decltype(a)>(); ++i) {
+    n = std::max(n, std::abs(a[i]));
+  }
+  return n;
+}
+
+auto norm1(const AbstractFixedSizeVector auto &a) {
+  using T = std::ranges::range_value_t<decltype(a)>;
+  T n = 0;
+  for (int i = 0; i < SizeAtCompileTime<decltype(a)>(); ++i) {
+    n += std::abs(a[i]);
+  }
+  return n;
 }
 
 // Distance

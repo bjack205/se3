@@ -57,7 +57,7 @@ Q randomRotation(std::uniform_random_bit_generator auto &gen) {
 
 template <AbstractQuaternion Q,
           std::floating_point T = std::ranges::range_value_t<Q>>
-Q rotX(T angle) {
+Q RotX(T angle) {
   T c = std::cos(angle / 2);
   T s = std::sin(angle / 2);
   return {s, 0, 0, c};
@@ -65,7 +65,7 @@ Q rotX(T angle) {
 
 template <AbstractQuaternion Q,
           std::floating_point T = std::ranges::range_value_t<Q>>
-Q rotY(T angle) {
+Q RotY(T angle) {
   T c = std::cos(angle / 2);
   T s = std::sin(angle / 2);
   return {0, s, 0, c};
@@ -73,7 +73,7 @@ Q rotY(T angle) {
 
 template <AbstractQuaternion Q,
           std::floating_point T = std::ranges::range_value_t<Q>>
-Q rotZ(T angle) {
+Q RotZ(T angle) {
   T c = std::cos(angle / 2);
   T s = std::sin(angle / 2);
   return {0, 0, s, c};
@@ -100,7 +100,7 @@ Q inverse(const Q &q) {
 // Quaternion multiplication
 template <AbstractQuaternion Q,
           std::floating_point T = std::ranges::range_value_t<Q>>
-Q operator*(const Q &q1, const Q &q2) {
+Q compose(const Q &q1, const Q &q2) {
   // q.w, -q.x, -q.y, -q.z,
   // q.x, q.w, -q.z, q.y,
   // q.y, q.z, q.w, -q.x,
@@ -110,6 +110,34 @@ Q operator*(const Q &q1, const Q &q2) {
   T y = q1.y * q2.w + q1.z * q2.x + q1.w * q2.y - q1.x * q2.z;
   T z = q1.z * q2.w - q1.y * q2.x + q1.x * q2.y + q1.w * q2.z;
   return {x, y, z, w};
+}
+
+template <AbstractQuaternion Q,
+          std::floating_point T = std::ranges::range_value_t<Q>>
+Q composeLeftInverse(const Q &q1, const Q &q2) {
+  return se3::compose(se3::inverse(q1), q2);
+}
+
+template <AbstractQuaternion Q,
+          std::floating_point T = std::ranges::range_value_t<Q>>
+Q composeRightInverse(const Q &q1, const Q &q2) {
+  return se3::compose(q1, se3::inverse(q2));
+}
+
+template <AbstractQuaternion Q,
+          std::floating_point T = std::ranges::range_value_t<Q>>
+Q composePure(const Q &q1, const Vec3 auto &q2) {
+  T w = -q1.x * q2.x - q1.y * q2.y - q1.z * q2.z;
+  T x = +q1.w * q2.x - q1.z * q2.y + q1.y * q2.z;
+  T y = +q1.z * q2.x + q1.w * q2.y - q1.x * q2.z;
+  T z = -q1.y * q2.x + q1.x * q2.y + q1.w * q2.z;
+  return {x, y, z, w};
+}
+
+template <AbstractQuaternion Q,
+          std::floating_point T = std::ranges::range_value_t<Q>>
+Q operator*(const Q &q1, const Q &q2) {
+  return compose(q1, q2);
 }
 
 template <AbstractQuaternion Q>
@@ -133,11 +161,21 @@ Mat3TypeFor<Q> rotationMatrix(const Q &q) {
 
 // Rotation of a vector
 template <AbstractQuaternion Q, AbstractVector3 V>
-V operator*(const Q &q, const V &v) {
+V rotate(const Q &q, const V &v) {
   // v_out = q x q(v) x q_c
   // v_out = R(q)^T L(q) H v
   // TODO: allow for special case of single-axis rotations
   return rotationMatrix(q) * v;
+}
+
+template <AbstractQuaternion Q, AbstractVector3 V>
+V rotateInverse(const Q &q, const V &v) {
+  return Transpose(rotationMatrix(q)) * v;
+}
+
+template <AbstractQuaternion Q, AbstractVector3 V>
+V operator*(const Q &q, const V &v) {
+  return rotate(q, v);
 }
 
 template <Vec3 V, AbstractQuaternion Q = QuatTypeFor<V>>

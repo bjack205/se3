@@ -12,20 +12,16 @@
 
 namespace se3 {
 
-template <typename V> constexpr std::size_t SizeAtCompileTime() {
-  return std::tuple_size_v<V>;
-}
-
 template <typename V>
-  requires requires() { V::extent; }
 constexpr std::size_t SizeAtCompileTime() {
-  return V::extent;
-}
-
-template <typename V>
-  requires requires() { V::SizeAtCompileTime; }
-constexpr std::size_t SizeAtCompileTime() {
-  return V::SizeAtCompileTime;
+  using U = std::remove_cvref_t<V>;
+  if constexpr (requires { U::SizeAtCompileTime; }) {
+    return U::SizeAtCompileTime;
+  } else if constexpr (requires { U::extent; }) {
+    return U::extent;
+  } else {
+    return std::tuple_size_v<U>;
+  }
 }
 
 template <typename V>

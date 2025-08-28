@@ -364,21 +364,21 @@ void TestInitializers() {
     EXPECT_NEAR(norm(q_rand), 1.0, tol);
 
     T angle = dist(gen) * 2 * std::numbers::pi;
-    Q qx = rotX<Q>(angle);
+    Q qx = RotX<Q>(angle);
     EXPECT_NEAR(norm(qx), 1.0, tol);
     EXPECT_NEAR(qx.x, std::sin(angle / 2), tol);
     EXPECT_NEAR(qx.y, 0.0, tol);
     EXPECT_NEAR(qx.z, 0.0, tol);
     EXPECT_NEAR(qx.w, std::cos(angle / 2), tol);
 
-    Q qy = rotY<Q>(angle);
+    Q qy = RotY<Q>(angle);
     EXPECT_NEAR(norm(qy), 1.0, tol);
     EXPECT_NEAR(qy.x, 0.0, tol);
     EXPECT_NEAR(qy.y, std::sin(angle / 2), tol);
     EXPECT_NEAR(qy.z, 0.0, tol);
     EXPECT_NEAR(qy.w, std::cos(angle / 2), tol);
 
-    Q qz = rotZ<Q>(angle);
+    Q qz = RotZ<Q>(angle);
     EXPECT_NEAR(norm(qz), 1.0, tol);
     EXPECT_NEAR(qz.x, 0.0, tol);
     EXPECT_NEAR(qz.y, 0.0, tol);
