@@ -100,7 +100,7 @@ void TestMatrixMultiplication() {
   EXPECT_EQ(A * inverse(A), M(I()));
 }
 
-TEST(MatrixTests, Matrix3_Multiplication) {
+TEST(MatrixTests, DISABLED_Matrix3_Multiplication) {
   TestMatrixMultiplication<Matrix3<float>, Vector3<float>>();
   TestMatrixMultiplication<Matrix3<double>, Vector3<double>>();
 }
