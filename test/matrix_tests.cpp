@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
+
 #include "se3/linear_algebra/generic/matrices_generic.hpp"
 #include "se3/linear_algebra/matmul.hpp"
 #include "se3/linear_algebra/matrix_ops.hpp"
@@ -146,6 +148,26 @@ TEST(MatrixTests, Mat4Transpose_Vec4) {
   // EXPECT_EQ(res.y, 100);
   // EXPECT_EQ(res.z, 110);
   // EXPECT_EQ(res.w, 120);
+}
+
+TEST(MatrixTests, Mat34) {
+  using T = double;
+  Matrix34<T> m0;
+  EXPECT_EQ(m0.rows(), 3);
+  EXPECT_EQ(m0.cols(), 4);
+  EXPECT_TRUE(std::ranges::all_of(m0, [](T x) { return x == T(0); }));
+
+  // Initialize from a view
+  Matrix34<T> m1(std::views::iota(0, 100) | std::views::take(12) |
+                 std::views::transform([](int i) { return T(2 * i); }));
+  for (int i = 0; i < m1.size(); ++i) {
+    EXPECT_EQ(m1[i], 2 * i);
+  }
+  for (int c = 0; c < m1.cols(); ++c) {
+    for (int r = 0; r < m1.rows(); ++r) {
+      EXPECT_EQ(m1(r, c), 2 * (4 * r + c));
+    }
+  }
 }
 
 }  // namespace generic

@@ -207,4 +207,91 @@ struct DiagonalMatrix3 {
   T m00, m11, m22;
 };
 
+template <std::floating_point T>
+struct Matrix34 {
+  static constexpr int kRowsAtCompileTime = 3;
+  static constexpr int kColsAtCompileTime = 4;
+  static constexpr int SizeAtCompileTime =
+      kRowsAtCompileTime * kColsAtCompileTime;
+
+  // Default to zero (no identity exists for non-square matrices)
+  Matrix34()
+      : m00(0),
+        m01(0),
+        m02(0),
+        m03(0),
+        m10(0),
+        m11(0),
+        m12(0),
+        m13(0),
+        m20(0),
+        m21(0),
+        m22(0),
+        m23(0) {}
+
+  // Row-major constructor: (r0...), (r1...), (r2...)
+  Matrix34(T m00, T m01, T m02, T m03, T m10, T m11, T m12, T m13, T m20,
+           T m21, T m22, T m23)
+      : m00(m00),
+        m01(m01),
+        m02(m02),
+        m03(m03),
+        m10(m10),
+        m11(m11),
+        m12(m12),
+        m13(m13),
+        m20(m20),
+        m21(m21),
+        m22(m22),
+        m23(m23) {}
+
+  explicit Matrix34(const std::ranges::input_range auto& input_range) {
+    std::ranges::copy(input_range, begin());
+  }
+
+
+  static Matrix34 zero() { return {}; }
+
+  Vector4<T> row(const int row) const {
+    const int offset = row * kColsAtCompileTime;
+    return {(&m00)[offset], (&m00)[offset + 1], (&m00)[offset + 2],
+            (&m00)[offset + 3]};
+  }
+
+  Vector3<T> col(const int col) const {
+    const T& c0 = (&m00)[col];
+    const T& c1 = (&m00)[col + kColsAtCompileTime];
+    const T& c2 = (&m00)[col + 2 * kColsAtCompileTime];
+    return {c0, c1, c2};
+  }
+
+  T* data() { return &m00; }
+  const T* data() const { return &m00; }
+
+  int rows() const { return kRowsAtCompileTime; }
+  int cols() const { return kColsAtCompileTime; }
+  std::size_t size() const { return SizeAtCompileTime; }
+
+  T& operator[](const int i) { return (&m00)[i]; }
+  const T& operator[](const int i) const { return (&m00)[i]; }
+
+  T* begin() { return &m00; }
+  T* end() { return &m23 + 1; }
+  const T* begin() const { return &m00; }
+  const T* end() const { return &m23 + 1; }
+
+  T& operator()(const int row, const int col) {
+    return (&m00)[col + row * kColsAtCompileTime];
+  }
+  const T& operator()(const int row, const int col) const {
+    return (&m00)[col + row * kColsAtCompileTime];
+  }
+
+  auto operator<=>(const Matrix34& other) const = default;
+
+  T m00, m01, m02, m03;
+  T m10, m11, m12, m13;
+  T m20, m21, m22, m23;
+};
+
 }  // namespace se3::generic
