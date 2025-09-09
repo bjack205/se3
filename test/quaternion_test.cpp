@@ -179,6 +179,22 @@ void TestQuaternionComposition() {
   q2 = Q(5, 6, 7, 8);
   q3 = Q(9, 10, 11, 12);
   EXPECT_LT(angleBetween((q1 * q2) * q3, q1 * (q2 * q3)), tol);
+
+  // Check specialized methods
+  q1 = normalize(q1);
+  q2 = normalize(q2);
+  q3 = q1 * q2;
+  EXPECT_LT(angleBetween(inverse(q1) * q3, q2), tol);
+  EXPECT_LT(angleBetween(composeLeftInverse(q1, q3), q2), tol);
+  EXPECT_LT(angleBetween(q3 * inverse(q2), q1), tol);
+  EXPECT_LT(angleBetween(composeRightInverse(q3, q2), q1), tol);
+
+  using Vector3 = MatrixGroupFor<Q>::Vec3;
+  std::mt19937 gen(1992);
+  auto v = rand<Vector3>(gen);
+  Q q_pure = pureQuaternion<Q>(v);
+  q3 = q1 * q_pure;
+  EXPECT_LT(angleBetween(q3, composePure(q1, v)), tol);
 }
 
 template <AbstractQuaternion Q>

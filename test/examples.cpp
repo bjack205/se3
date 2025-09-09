@@ -7,7 +7,6 @@
 
 #include "gtest/gtest.h"
 #include "se3/generic.hpp"
-#include "se3/linear_algebra/vector_ops.hpp"
 
 TEST(Examples, LinearAlgebra) {
   se3::Vector3d v{1, 2, 3};
@@ -107,10 +106,42 @@ TEST(Examples, Quaternions) {
   // Composition
   q = q_x * q_y;
   q = se3::compose(q_x, q_y);
-  q_y = q * se3::inverse(q_x);
+  q_y = se3::inverse(q_x) * q;
+  q_y = se3::composeLeftInverse(q_x, q);
+  q_x = q * se3::inverse(q_y);
+  q_x = se3::composeRightInverse(q, q_y);
 
   // Vector rotation
   se3::Vector3d v{1, 2, 3};
   auto v_rot = q * v;
-  v = se3::inverse(q) * v;
+  v = se3::inverse(q) * v_rot;
+
+  // Pure quaternion
+  auto q_pure = se3::pureQuaternion<se3::Quaterniond>(v);
+  se3::Quaterniond q3 = q * q_pure;
+  q3 = se3::composePure(q, v);
+
+  // Rotation matrix
+  se3::Matrix3d A = se3::rotationMatrix(q);
+  v_rot = A * v;
+
+  // Angle between quaternions
+  double theta = se3::angleBetween(q, q_z);
+
+  // Matrices
+  using se3::quatmats::L;
+  using se3::quatmats::R;
+  using se3::quatmats::T;
+  q = L(q_x) * q_y;
+  q = R(q_y) * q_x;
+  q_y = se3::Transpose(L(q_x)) * q;
+  q_y = R(q) * (T() * q_x);
+
+  // Exponential and logarithm
+  q = se3::expm(se3::logm(q));
+  q = se3::exp(se3::log(q));
+  q = se3::log(se3::exp(q));
+
+  // Quaternion error
+  se3::Vector3d phi = se3::logm(se3::inverse(q_x) * q);
 }

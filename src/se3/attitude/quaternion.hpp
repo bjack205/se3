@@ -56,6 +56,11 @@ Q randomRotation(std::uniform_random_bit_generator auto &gen) {
   return normalize(Q{dist(gen), dist(gen), dist(gen), dist(gen)});
 }
 
+template <AbstractQuaternion Q, Vec3 V = Vec3TypeFor<Q>>
+Q pureQuaternion(const V& v) {
+  return {v[0], v[1], v[2], 0};
+}
+
 template <AbstractQuaternion Q,
           std::floating_point T = std::ranges::range_value_t<Q>>
 Q RotX(T angle) {
@@ -271,6 +276,11 @@ Q flipToPositiveScalar(const Q &q) {
     return q.x > 0 ? q : flipQuaternion(q);
   }
   return q.w > 0 ? q : flipQuaternion(q);
+}
+
+template <AbstractQuaternion Q, Mat34 M34 = MatrixGroupFor<Q>::Mat34>
+M34 rotationJacobian() {
+
 }
 
 namespace quatmats {
